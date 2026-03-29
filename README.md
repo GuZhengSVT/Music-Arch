@@ -64,6 +64,7 @@ for record in records[:3]:
 - Sort controls (old/new name, status, match result)
 - Pagination controls (200/500/1000/all) for large libraries
 - Incremental scan rendering (results appear while scanning)
+- Stop-current-task support for scan/match/apply (keeps partial results)
 
 Notes:
 

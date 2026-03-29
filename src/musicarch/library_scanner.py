@@ -51,6 +51,7 @@ class MusicLibraryScanner:
         self,
         root_dir: Path,
         progress_callback: Callable[[int, int, str], None] | None = None,
+        should_stop: Callable[[], bool] | None = None,
     ) -> list[TrackScanRecord]:
         root = root_dir.expanduser().resolve()
         if not root.exists() or not root.is_dir():
@@ -66,6 +67,8 @@ class MusicLibraryScanner:
             total = len(futures)
             done = 0
             for future in as_completed(futures):
+                if should_stop and should_stop():
+                    break
                 records.append(future.result())
                 done += 1
                 if progress_callback:
@@ -78,14 +81,23 @@ class MusicLibraryScanner:
         self,
         root_dir: Path,
         progress_callback: Callable[[int, int, str], None] | None = None,
+        should_stop: Callable[[], bool] | None = None,
     ) -> list[dict[str, Any]]:
-        return [item.to_dict() for item in self.scan(root_dir, progress_callback=progress_callback)]
+        return [
+            item.to_dict()
+            for item in self.scan(
+                root_dir,
+                progress_callback=progress_callback,
+                should_stop=should_stop,
+            )
+        ]
 
     def scan_stream_as_dicts(
         self,
         root_dir: Path,
         batch_callback: Callable[[list[dict[str, Any]]], None] | None = None,
         progress_callback: Callable[[int, int, str], None] | None = None,
+        should_stop: Callable[[], bool] | None = None,
         batch_size: int = 200,
     ) -> list[dict[str, Any]]:
         root = root_dir.expanduser().resolve()
@@ -105,6 +117,11 @@ class MusicLibraryScanner:
             total = len(futures)
             done = 0
             for future in as_completed(futures):
+                if should_stop and should_stop():
+                    for pending in futures:
+                        pending.cancel()
+                    break
+
                 record = future.result().to_dict()
                 records.append(record)
                 chunk.append(record)

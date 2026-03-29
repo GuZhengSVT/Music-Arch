@@ -43,6 +43,7 @@ class ScanWorker(QObject):
         super().__init__()
         self.scanner = scanner
         self.root_dir = root_dir
+        self._stop_requested = False
 
     def run(self) -> None:
         try:
@@ -50,11 +51,18 @@ class ScanWorker(QObject):
                 Path(self.root_dir),
                 batch_callback=self._on_batch,
                 progress_callback=self._on_progress,
+                should_stop=self._should_stop,
                 batch_size=200,
             )
             self.finished.emit(records)
         except Exception as exc:
             self.error.emit(str(exc))
+
+    def request_stop(self) -> None:
+        self._stop_requested = True
+
+    def _should_stop(self) -> bool:
+        return self._stop_requested
 
     def _on_batch(self, batch: list[dict]) -> None:
         self.batch_ready.emit(batch)
@@ -73,13 +81,24 @@ class MatchWorker(QObject):
         super().__init__()
         self.workflow = workflow
         self.records = records
+        self._stop_requested = False
 
     def run(self) -> None:
         try:
-            updated = self.workflow.match_records(self.records, progress_callback=self._on_progress)
+            updated = self.workflow.match_records(
+                self.records,
+                progress_callback=self._on_progress,
+                should_stop=self._should_stop,
+            )
             self.finished.emit(updated)
         except Exception as exc:
             self.error.emit(str(exc))
+
+    def request_stop(self) -> None:
+        self._stop_requested = True
+
+    def _should_stop(self) -> bool:
+        return self._stop_requested
 
     def _on_progress(self, current: int, total: int, message: str) -> None:
         percent = int((current / total) * 100) if total else 0
@@ -95,13 +114,24 @@ class ApplyWorker(QObject):
         super().__init__()
         self.workflow = workflow
         self.records = records
+        self._stop_requested = False
 
     def run(self) -> None:
         try:
-            updated = self.workflow.apply_changes(self.records, progress_callback=self._on_progress)
+            updated = self.workflow.apply_changes(
+                self.records,
+                progress_callback=self._on_progress,
+                should_stop=self._should_stop,
+            )
             self.finished.emit(updated)
         except Exception as exc:
             self.error.emit(str(exc))
+
+    def request_stop(self) -> None:
+        self._stop_requested = True
+
+    def _should_stop(self) -> bool:
+        return self._stop_requested
 
     def _on_progress(self, current: int, total: int, message: str) -> None:
         percent = int((current / total) * 100) if total else 0
@@ -129,6 +159,8 @@ class MusicArchMainWindow(QMainWindow):
         self.records: list[dict] = []
         self.filtered_indices: list[int] = []
         self.page_index = 0
+        self.task_cancel_requested = False
+        self.current_worker: QObject | None = None
         self.view_state = RecordViewState()
         self.sort_field_map = {
             "旧文件名": "old_file_name",
@@ -158,16 +190,19 @@ class MusicArchMainWindow(QMainWindow):
         self.scan_button = QPushButton("开始扫描")
         self.match_button = QPushButton("云端匹配")
         self.apply_button = QPushButton("应用修改")
+        self.stop_button = QPushButton("停止当前任务")
         self.export_button = QPushButton("导出异常CSV")
 
         self.scan_button.clicked.connect(self._on_start_scan)
         self.match_button.clicked.connect(self._on_start_match)
         self.apply_button.clicked.connect(self._on_start_apply)
+        self.stop_button.clicked.connect(self._on_stop_task)
         self.export_button.clicked.connect(self._on_export_anomaly_csv)
 
         action_layout.addWidget(self.scan_button)
         action_layout.addWidget(self.match_button)
         action_layout.addWidget(self.apply_button)
+        action_layout.addWidget(self.stop_button)
         action_layout.addWidget(self.export_button)
 
         filter_layout = QHBoxLayout()
@@ -300,11 +335,14 @@ class MusicArchMainWindow(QMainWindow):
             return
 
         self.progress.setValue(0)
+        self.task_cancel_requested = False
         self._set_actions_enabled(False)
+        self.stop_button.setEnabled(True)
         self._log(start_log)
 
         thread = QThread(self)
         self.worker_thread = thread
+        self.current_worker = worker
         worker.moveToThread(thread)
 
         thread.started.connect(worker.run)
@@ -364,17 +402,24 @@ class MusicArchMainWindow(QMainWindow):
         self._log(f"错误: {message}")
         QMessageBox.critical(self, "任务失败", message)
         self._set_actions_enabled(True)
+        self.stop_button.setEnabled(False)
 
     def _on_worker_done(self, finish_log: str) -> None:
         self.progress.setValue(100)
         self._set_actions_enabled(True)
-        self._log(finish_log)
+        self.stop_button.setEnabled(False)
+        if self.task_cancel_requested:
+            self._log("任务已停止，已保留当前已完成结果")
+        else:
+            self._log(finish_log)
+        self.current_worker = None
 
     def _set_actions_enabled(self, enabled: bool) -> None:
         self.select_button.setEnabled(enabled)
         self.scan_button.setEnabled(enabled)
         self.match_button.setEnabled(enabled)
         self.apply_button.setEnabled(enabled)
+        self.stop_button.setEnabled(False)
         self.export_button.setEnabled(enabled)
         self.status_filter.setEnabled(enabled)
         self.search_input.setEnabled(enabled)
@@ -504,6 +549,16 @@ class MusicArchMainWindow(QMainWindow):
                 writer.writerow({key: row.get(key, "") for key in headers})
 
         self._log(f"异常项已导出: {target}")
+
+    def _on_stop_task(self) -> None:
+        if not (self.worker_thread and self.worker_thread.isRunning()):
+            QMessageBox.information(self, "提示", "当前没有进行中的任务")
+            return
+
+        self.task_cancel_requested = True
+        if self.current_worker and hasattr(self.current_worker, "request_stop"):
+            self.current_worker.request_stop()
+        self._log("已请求停止当前任务，等待正在执行的批次收尾")
 
     def _paint_row(self, row: int, color: QColor) -> None:
         for col in range(self.table.columnCount()):

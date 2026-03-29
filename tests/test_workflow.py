@@ -159,3 +159,75 @@ def test_apply_changes_allows_confirmed_anomaly(tmp_path: Path):
     out = workflow.apply_changes(records)
     assert out[0]["status"] == "success"
     assert (tmp_path / "fixed.mp3").exists()
+
+
+def test_match_records_can_stop_early():
+    candidate = CloudTrackCandidate(
+        source="fake",
+        track_id="1",
+        title="Song",
+        artists=["Artist"],
+        duration_seconds=100,
+    )
+    decision = MatchDecision(
+        status="matched",
+        confidence=0.88,
+        reason="High confidence match",
+        best_candidate=candidate,
+    )
+    workflow = MusicArchWorkflow(matcher=FakeMatcher(decision))
+
+    records = [
+        {
+            "audio_path": f"/tmp/{i}.mp3",
+            "relative_path": f"Artist/Album/{i}.mp3",
+            "old_file_name": f"{i}.mp3",
+            "new_file_name": f"{i}.mp3",
+            "status": "pending",
+            "cloud_match_result": "待匹配",
+            "title": "Song",
+            "artist": "Artist",
+        }
+        for i in range(3)
+    ]
+
+    state = {"called": 0}
+
+    def _should_stop() -> bool:
+        state["called"] += 1
+        return state["called"] > 1
+
+    out = workflow.match_records(records, should_stop=_should_stop)
+    matched_count = sum(1 for item in out if str(item.get("cloud_match_result", "")).startswith("匹配:"))
+    assert matched_count == 1
+
+
+def test_apply_changes_can_stop_early(tmp_path: Path):
+    workflow = MusicArchWorkflow()
+    workflow.engine.embed_lrc_for_audio = lambda _path: True
+
+    records = []
+    for i in range(3):
+        file_path = tmp_path / f"{i}.mp3"
+        file_path.write_bytes(b"x")
+        records.append(
+            {
+                "audio_path": str(file_path),
+                "relative_path": f"Artist/Album/{i}.mp3",
+                "old_file_name": f"{i}.mp3",
+                "new_file_name": f"new_{i}.mp3",
+                "rename_needed": True,
+                "has_lrc": False,
+                "status": "pending",
+            }
+        )
+
+    state = {"called": 0}
+
+    def _should_stop() -> bool:
+        state["called"] += 1
+        return state["called"] > 1
+
+    out = workflow.apply_changes(records, should_stop=_should_stop)
+    success_count = sum(1 for item in out if item.get("status") == "success")
+    assert success_count == 1

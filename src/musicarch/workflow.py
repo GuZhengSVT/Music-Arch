@@ -23,6 +23,7 @@ class MusicArchWorkflow:
         self,
         records: list[dict],
         progress_callback: Callable[[int, int, str], None] | None = None,
+        should_stop: Callable[[], bool] | None = None,
     ) -> list[dict]:
         if not self.matcher:
             raise ValueError("MetadataMatcher is not configured")
@@ -30,6 +31,9 @@ class MusicArchWorkflow:
         updated = deepcopy(records)
         total = len(updated)
         for idx, record in enumerate(updated, start=1):
+            if should_stop and should_stop():
+                break
+
             local = self._build_local_track(record)
             decision = self.matcher.match(local)
             record["cloud_match_result"] = format_match_result(decision)
@@ -46,11 +50,15 @@ class MusicArchWorkflow:
         self,
         records: list[dict],
         progress_callback: Callable[[int, int, str], None] | None = None,
+        should_stop: Callable[[], bool] | None = None,
     ) -> list[dict]:
         updated = deepcopy(records)
         total = len(updated)
 
         for idx, record in enumerate(updated, start=1):
+            if should_stop and should_stop():
+                break
+
             if record.get("skip_apply"):
                 if progress_callback:
                     progress_callback(idx, total, f"Skipped: {record.get('old_file_name', '')}")

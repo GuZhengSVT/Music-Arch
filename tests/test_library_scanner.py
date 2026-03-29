@@ -93,3 +93,22 @@ def test_scan_stream_as_dicts_emits_batches(tmp_path: Path):
     assert len(records) == 3
     assert len(received) == 2
     assert sum(len(x) for x in received) == 3
+
+
+def test_scan_stream_as_dicts_can_stop_early(tmp_path: Path):
+    for i in range(5):
+        (tmp_path / f"{i:02d}.mp3").write_bytes(b"x")
+
+    scanner = MusicLibraryScanner(max_workers=2)
+    scanner._read_basic_metadata = lambda _: {}
+
+    state = {"called": 0}
+
+    def _should_stop() -> bool:
+        state["called"] += 1
+        return state["called"] > 1
+
+    records = scanner.scan_stream_as_dicts(tmp_path, should_stop=_should_stop, batch_size=1)
+
+    assert len(records) >= 0
+    assert len(records) < 5
