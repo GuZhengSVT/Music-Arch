@@ -27,6 +27,7 @@ from PyQt6.QtWidgets import (
 )
 
 from .api_matcher import MetadataMatcher, NetEaseSearchClient, QQMusicSearchClient
+from .checkpoint_store import CheckpointStore
 from .core_engine import MusicArchEngine
 from .library_scanner import MusicLibraryScanner
 from .view_state import RecordViewState
@@ -148,6 +149,7 @@ class MusicArchMainWindow(QMainWindow):
 
         self.engine = MusicArchEngine()
         self.scanner = MusicLibraryScanner(engine=self.engine, max_workers=8)
+        self.checkpoints = CheckpointStore()
         self.matcher = MetadataMatcher(
             clients=[NetEaseSearchClient(), QQMusicSearchClient()],
             duration_tolerance_seconds=5,
@@ -190,19 +192,28 @@ class MusicArchMainWindow(QMainWindow):
         self.scan_button = QPushButton("开始扫描")
         self.match_button = QPushButton("云端匹配")
         self.apply_button = QPushButton("应用修改")
+        self.retry_anomaly_button = QPushButton("重试异常项")
         self.stop_button = QPushButton("停止当前任务")
+        self.save_checkpoint_button = QPushButton("保存检查点")
+        self.load_checkpoint_button = QPushButton("加载检查点")
         self.export_button = QPushButton("导出异常CSV")
 
         self.scan_button.clicked.connect(self._on_start_scan)
         self.match_button.clicked.connect(self._on_start_match)
         self.apply_button.clicked.connect(self._on_start_apply)
+        self.retry_anomaly_button.clicked.connect(self._on_retry_anomalies)
         self.stop_button.clicked.connect(self._on_stop_task)
+        self.save_checkpoint_button.clicked.connect(self._on_save_checkpoint)
+        self.load_checkpoint_button.clicked.connect(self._on_load_checkpoint)
         self.export_button.clicked.connect(self._on_export_anomaly_csv)
 
         action_layout.addWidget(self.scan_button)
         action_layout.addWidget(self.match_button)
         action_layout.addWidget(self.apply_button)
+        action_layout.addWidget(self.retry_anomaly_button)
         action_layout.addWidget(self.stop_button)
+        action_layout.addWidget(self.save_checkpoint_button)
+        action_layout.addWidget(self.load_checkpoint_button)
         action_layout.addWidget(self.export_button)
 
         filter_layout = QHBoxLayout()
@@ -329,6 +340,99 @@ class MusicArchMainWindow(QMainWindow):
             on_finished=self._handle_apply_finished,
         )
 
+    def _on_retry_anomalies(self) -> None:
+        if not self.records:
+            QMessageBox.warning(self, "提示", "请先扫描目录")
+            return
+
+        payload: list[dict] = []
+        for idx, record in enumerate(self.records):
+            if str(record.get("status", "")) != "anomaly":
+                continue
+            item = deepcopy(record)
+            item["_origin_index"] = idx
+            item["skip_apply"] = False
+            item["manual_confirmed"] = True
+            item["status"] = "pending"
+            payload.append(item)
+
+        if not payload:
+            QMessageBox.information(self, "提示", "当前没有异常项可重试")
+            return
+
+        worker = ApplyWorker(self.workflow, payload)
+        self._start_worker(
+            worker=worker,
+            start_log=f"开始重试异常项: {len(payload)} 条",
+            finish_log="异常项重试完成",
+            on_finished=self._handle_retry_finished,
+        )
+
+    def _handle_retry_finished(self, retried_records: list[dict]) -> None:
+        for item in retried_records:
+            origin_idx = item.get("_origin_index")
+            if isinstance(origin_idx, int) and 0 <= origin_idx < len(self.records):
+                item.pop("_origin_index", None)
+                self.records[origin_idx].update(item)
+
+        self.page_index = 0
+        self._refresh_table()
+
+    def _default_checkpoint_path(self) -> Path:
+        if self.current_dir:
+            return Path(self.current_dir) / ".musicarch_checkpoint.jsonl"
+        return Path.cwd() / ".musicarch_checkpoint.jsonl"
+
+    def _on_save_checkpoint(self) -> None:
+        if not self.records:
+            QMessageBox.information(self, "提示", "当前没有记录可保存")
+            return
+
+        target, _ = QFileDialog.getSaveFileName(
+            self,
+            "保存检查点",
+            str(self._default_checkpoint_path()),
+            "JSONL Files (*.jsonl)",
+        )
+        if not target:
+            return
+
+        try:
+            self.checkpoints.save(
+                Path(target),
+                self.records,
+                metadata={"root_dir": self.current_dir},
+            )
+            self._log(f"检查点已保存: {target}")
+        except Exception as exc:
+            QMessageBox.critical(self, "保存失败", str(exc))
+
+    def _on_load_checkpoint(self) -> None:
+        target, _ = QFileDialog.getOpenFileName(
+            self,
+            "加载检查点",
+            str(self._default_checkpoint_path()),
+            "JSONL Files (*.jsonl)",
+        )
+        if not target:
+            return
+
+        try:
+            metadata, records = self.checkpoints.load(Path(target))
+            for record in records:
+                record.setdefault("manual_confirmed", False)
+                record.setdefault("skip_apply", False)
+
+            self.records = records
+            self.current_dir = str(metadata.get("root_dir") or self.current_dir or "")
+            if self.current_dir:
+                self.path_label.setText(self.current_dir)
+            self.page_index = 0
+            self._refresh_table()
+            self._log(f"检查点已加载: {target}, 记录数: {len(records)}")
+        except Exception as exc:
+            QMessageBox.critical(self, "加载失败", str(exc))
+
     def _start_worker(self, worker: QObject, start_log: str, finish_log: str, on_finished) -> None:
         if self.worker_thread and self.worker_thread.isRunning():
             QMessageBox.information(self, "提示", "已有任务正在执行")
@@ -419,7 +523,10 @@ class MusicArchMainWindow(QMainWindow):
         self.scan_button.setEnabled(enabled)
         self.match_button.setEnabled(enabled)
         self.apply_button.setEnabled(enabled)
+        self.retry_anomaly_button.setEnabled(enabled)
         self.stop_button.setEnabled(False)
+        self.save_checkpoint_button.setEnabled(enabled)
+        self.load_checkpoint_button.setEnabled(enabled)
         self.export_button.setEnabled(enabled)
         self.status_filter.setEnabled(enabled)
         self.search_input.setEnabled(enabled)

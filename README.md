@@ -65,6 +65,8 @@ for record in records[:3]:
 - Pagination controls (200/500/1000/all) for large libraries
 - Incremental scan rendering (results appear while scanning)
 - Stop-current-task support for scan/match/apply (keeps partial results)
+- JSONL checkpoint save/load for resume workflows
+- Retry queue: re-run apply only for anomaly rows
 
 Notes:
 
