@@ -7,9 +7,12 @@ from .api_matcher import (
 	MetadataMatcher,
 )
 from .core_engine import MusicArchEngine
+from .library_scanner import MusicLibraryScanner, TrackScanRecord
 
 __all__ = [
 	"MusicArchEngine",
+	"MusicLibraryScanner",
+	"TrackScanRecord",
 	"LocalTrackInfo",
 	"CloudTrackCandidate",
 	"MatchDecision",
