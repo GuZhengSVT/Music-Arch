@@ -1,3 +1,5 @@
+import httpx
+
 from musicarch.api_matcher import (
     BaseMusicSearchClient,
     CloudTrackCandidate,
@@ -15,6 +17,13 @@ class FakeClient(BaseMusicSearchClient):
 
     def search_tracks(self, query: str, limit: int = 5) -> list[CloudTrackCandidate]:
         return self.payload[:limit]
+
+
+class FailingClient(BaseMusicSearchClient):
+    source_name = "failing"
+
+    def search_tracks(self, query: str, limit: int = 5) -> list[CloudTrackCandidate]:
+        raise httpx.TimeoutException("request timeout")
 
 
 def test_match_success_high_confidence():
@@ -75,3 +84,14 @@ def test_match_anomaly_when_confidence_too_low():
 
     assert decision.status == "anomaly"
     assert decision.reason == "Low confidence match"
+
+
+def test_match_not_found_contains_error_metadata_when_client_fails():
+    local = LocalTrackInfo(title="A", artist="B")
+    matcher = MetadataMatcher([FailingClient()])
+    decision = matcher.match(local)
+
+    assert decision.status == "not_found"
+    assert decision.error_code == "timeout"
+    assert decision.error_message is not None
+    assert "timeout" in format_match_result(decision)

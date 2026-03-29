@@ -3,6 +3,7 @@ from __future__ import annotations
 import csv
 from copy import deepcopy
 import sys
+import time
 from pathlib import Path
 
 from PyQt6.QtCore import QObject, QPoint, Qt, QThread, pyqtSignal
@@ -163,6 +164,11 @@ class MusicArchMainWindow(QMainWindow):
         self.page_index = 0
         self.task_cancel_requested = False
         self.current_worker: QObject | None = None
+        self.auto_checkpoint_every = 300
+        self.update_counter = 0
+        self.last_scan_refresh_at = 0.0
+        self.last_log_message = ""
+        self.log_repeat_count = 0
         self.view_state = RecordViewState()
         self.sort_field_map = {
             "旧文件名": "old_file_name",
@@ -174,6 +180,7 @@ class MusicArchMainWindow(QMainWindow):
         self._build_ui()
 
         self.worker_thread: QThread | None = None
+        self._prompt_restore_checkpoint()
 
     def _build_ui(self) -> None:
         root = QWidget()
@@ -219,7 +226,7 @@ class MusicArchMainWindow(QMainWindow):
         filter_layout = QHBoxLayout()
         filter_layout.addWidget(QLabel("状态筛选"))
         self.status_filter = QComboBox()
-        self.status_filter.addItems(["全部", "pending", "success", "anomaly"])
+        self.status_filter.addItems(["全部", "pending", "success", "anomaly", "cancelled"])
         self.status_filter.currentTextChanged.connect(self._on_filter_changed)
 
         filter_layout.addWidget(self.status_filter)
@@ -287,6 +294,7 @@ class MusicArchMainWindow(QMainWindow):
 
         self.records = []
         self.page_index = 0
+        self.update_counter = 0
         self._refresh_table()
 
         worker = ScanWorker(self.scanner, self.current_dir)
@@ -349,6 +357,8 @@ class MusicArchMainWindow(QMainWindow):
         for idx, record in enumerate(self.records):
             if str(record.get("status", "")) != "anomaly":
                 continue
+            if not self._is_retryable_anomaly(record):
+                continue
             item = deepcopy(record)
             item["_origin_index"] = idx
             item["skip_apply"] = False
@@ -357,7 +367,7 @@ class MusicArchMainWindow(QMainWindow):
             payload.append(item)
 
         if not payload:
-            QMessageBox.information(self, "提示", "当前没有异常项可重试")
+            QMessageBox.information(self, "提示", "当前没有可恢复的异常项可重试")
             return
 
         worker = ApplyWorker(self.workflow, payload)
@@ -401,7 +411,7 @@ class MusicArchMainWindow(QMainWindow):
             self.checkpoints.save(
                 Path(target),
                 self.records,
-                metadata={"root_dir": self.current_dir},
+                metadata={"root_dir": self.current_dir, "saved_at": int(time.time())},
             )
             self._log(f"检查点已保存: {target}")
         except Exception as exc:
@@ -472,6 +482,7 @@ class MusicArchMainWindow(QMainWindow):
         self.records = records
         self.page_index = 0
         self._refresh_table()
+        self._save_checkpoint_silent()
         self._log(f"扫描结果数量: {len(records)}")
 
     def _handle_scan_batch(self, batch: list[dict]) -> None:
@@ -479,8 +490,14 @@ class MusicArchMainWindow(QMainWindow):
             record["manual_confirmed"] = False
             record["skip_apply"] = False
             self.records.append(record)
+            self.update_counter += 1
 
-        self._refresh_table()
+        now = time.monotonic()
+        if (now - self.last_scan_refresh_at) >= 0.2:
+            self._refresh_table()
+            self.last_scan_refresh_at = now
+
+        self._maybe_auto_checkpoint()
         self._log(f"扫描中: 已发现 {len(self.records)} 条")
 
     def _handle_match_finished(self, records: list[dict]) -> None:
@@ -490,6 +507,7 @@ class MusicArchMainWindow(QMainWindow):
         self.records = records
         self.page_index = 0
         self._refresh_table()
+        self._save_checkpoint_silent()
 
     def _handle_apply_finished(self, records: list[dict]) -> None:
         for record in records:
@@ -497,6 +515,7 @@ class MusicArchMainWindow(QMainWindow):
         self.records = records
         self.page_index = 0
         self._refresh_table()
+        self._save_checkpoint_silent()
 
     def _on_worker_progress(self, value: int, message: str) -> None:
         self.progress.setValue(value)
@@ -517,6 +536,7 @@ class MusicArchMainWindow(QMainWindow):
         else:
             self._log(finish_log)
         self.current_worker = None
+        self._save_checkpoint_silent()
 
     def _set_actions_enabled(self, enabled: bool) -> None:
         self.select_button.setEnabled(enabled)
@@ -667,6 +687,81 @@ class MusicArchMainWindow(QMainWindow):
             self.current_worker.request_stop()
         self._log("已请求停止当前任务，等待正在执行的批次收尾")
 
+    def _is_retryable_anomaly(self, record: dict) -> bool:
+        if bool(record.get("retryable")):
+            return True
+
+        code = str(record.get("error_code", "")).strip()
+        if not code:
+            return True
+        return code in {
+            "timeout",
+            "network",
+            "http_status",
+            "parse_error",
+            "missing_file",
+            "permission_denied",
+            "io_error",
+            "tag_write_error",
+        }
+
+    def _auto_checkpoint_path(self) -> Path:
+        if self.current_dir:
+            return Path(self.current_dir) / ".musicarch_checkpoint.jsonl"
+        return Path.cwd() / ".musicarch_checkpoint.jsonl"
+
+    def _save_checkpoint_silent(self) -> None:
+        if not self.records:
+            return
+        try:
+            self.checkpoints.save(
+                self._auto_checkpoint_path(),
+                self.records,
+                metadata={"root_dir": self.current_dir, "saved_at": int(time.time())},
+            )
+        except Exception as exc:
+            self._log(f"自动检查点保存失败: {exc}")
+
+    def _maybe_auto_checkpoint(self) -> None:
+        if self.auto_checkpoint_every <= 0:
+            return
+        if self.update_counter == 0:
+            return
+        if self.update_counter % self.auto_checkpoint_every != 0:
+            return
+        self._save_checkpoint_silent()
+
+    def _prompt_restore_checkpoint(self) -> None:
+        checkpoint_path = self._auto_checkpoint_path()
+        if not checkpoint_path.exists():
+            return
+
+        choice = QMessageBox.question(
+            self,
+            "恢复检查点",
+            f"检测到检查点文件，是否恢复？\n{checkpoint_path}",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.Yes,
+        )
+        if choice != QMessageBox.StandardButton.Yes:
+            return
+
+        try:
+            metadata, records = self.checkpoints.load(checkpoint_path)
+            for record in records:
+                record.setdefault("manual_confirmed", False)
+                record.setdefault("skip_apply", False)
+
+            self.records = records
+            self.current_dir = str(metadata.get("root_dir") or self.current_dir or "")
+            if self.current_dir:
+                self.path_label.setText(self.current_dir)
+            self.page_index = 0
+            self._refresh_table()
+            self._log(f"已恢复检查点: {checkpoint_path}")
+        except Exception as exc:
+            QMessageBox.critical(self, "恢复失败", str(exc))
+
     def _paint_row(self, row: int, color: QColor) -> None:
         for col in range(self.table.columnCount()):
             item = self.table.item(row, col)
@@ -674,7 +769,19 @@ class MusicArchMainWindow(QMainWindow):
                 item.setBackground(color)
 
     def _log(self, message: str) -> None:
+        if message == self.last_log_message:
+            self.log_repeat_count += 1
+            if self.log_repeat_count in {2, 5, 10, 20, 50}:
+                self.log_box.append(f"{message} (x{self.log_repeat_count})")
+            return
+
+        self.last_log_message = message
+        self.log_repeat_count = 1
         self.log_box.append(message)
+
+        if self.log_box.document().blockCount() > 2500:
+            lines = self.log_box.toPlainText().splitlines()[-1500:]
+            self.log_box.setPlainText("\n".join(lines))
 
 
 def run_gui() -> int:

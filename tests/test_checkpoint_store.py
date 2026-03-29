@@ -42,3 +42,13 @@ def test_checkpoint_load_missing_file_raises(tmp_path: Path):
         pass
     else:
         raise AssertionError("Expected FileNotFoundError")
+
+
+def test_checkpoint_save_is_atomic_and_no_tmp_left(tmp_path: Path):
+    store = CheckpointStore()
+    path = tmp_path / "atomic.jsonl"
+
+    store.save(path, [{"audio_path": "/z.mp3", "status": "pending"}], {"root_dir": "/music"})
+
+    assert path.exists()
+    assert not (tmp_path / "atomic.jsonl.tmp").exists()

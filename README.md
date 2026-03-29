@@ -67,6 +67,11 @@ for record in records[:3]:
 - Stop-current-task support for scan/match/apply (keeps partial results)
 - JSONL checkpoint save/load for resume workflows
 - Retry queue: re-run apply only for anomaly rows
+- API retry/backoff and structured network error tagging
+- Conflict-safe rename fallback (auto suffix like `(1)`)
+- Atomic checkpoint writes and startup checkpoint restore prompt
+- Auto periodic checkpoint during long scans
+- Scan UI refresh throttling and log deduplication
 
 Notes:
 

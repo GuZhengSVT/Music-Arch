@@ -231,3 +231,56 @@ def test_apply_changes_can_stop_early(tmp_path: Path):
     out = workflow.apply_changes(records, should_stop=_should_stop)
     success_count = sum(1 for item in out if item.get("status") == "success")
     assert success_count == 1
+    cancelled_count = sum(1 for item in out if item.get("status") == "cancelled")
+    assert cancelled_count >= 1
+
+
+def test_apply_changes_resolves_name_conflict(tmp_path: Path):
+    old_audio = tmp_path / "01 - demo.mp3"
+    conflict_audio = tmp_path / "demo.mp3"
+    old_audio.write_bytes(b"audio")
+    conflict_audio.write_bytes(b"exists")
+
+    workflow = MusicArchWorkflow()
+    workflow.engine.embed_lrc_for_audio = lambda _path: True
+
+    records = [
+        {
+            "audio_path": str(old_audio),
+            "relative_path": "Artist/Album/01 - demo.mp3",
+            "old_file_name": "01 - demo.mp3",
+            "new_file_name": "demo.mp3",
+            "rename_needed": True,
+            "has_lrc": False,
+            "status": "pending",
+            "skip_apply": False,
+        }
+    ]
+
+    out = workflow.apply_changes(records)
+    assert out[0]["status"] == "success"
+    assert out[0]["new_file_name"] == "demo (1).mp3"
+    assert (tmp_path / "demo (1).mp3").exists()
+
+
+def test_apply_changes_preflight_missing_file_sets_error_code(tmp_path: Path):
+    workflow = MusicArchWorkflow()
+    workflow.engine.embed_lrc_for_audio = lambda _path: True
+
+    missing = tmp_path / "missing.mp3"
+    records = [
+        {
+            "audio_path": str(missing),
+            "relative_path": "Artist/Album/missing.mp3",
+            "old_file_name": "missing.mp3",
+            "new_file_name": "missing.mp3",
+            "rename_needed": False,
+            "has_lrc": False,
+            "status": "pending",
+            "skip_apply": False,
+        }
+    ]
+
+    out = workflow.apply_changes(records)
+    assert out[0]["status"] == "anomaly"
+    assert out[0]["error_code"] == "missing_file"

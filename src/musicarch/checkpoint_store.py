@@ -18,11 +18,14 @@ class CheckpointStore:
     ) -> None:
         path.parent.mkdir(parents=True, exist_ok=True)
         meta = metadata or {}
+        temp_path = path.with_suffix(path.suffix + ".tmp")
 
-        with path.open("w", encoding="utf-8") as fp:
+        with temp_path.open("w", encoding="utf-8") as fp:
             fp.write(json.dumps({self.META_KEY: meta}, ensure_ascii=False) + "\n")
             for record in records:
                 fp.write(json.dumps(record, ensure_ascii=False) + "\n")
+
+        temp_path.replace(path)
 
     def load(self, path: Path) -> tuple[dict[str, Any], list[dict[str, Any]]]:
         if not path.exists():

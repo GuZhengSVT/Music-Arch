@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from difflib import SequenceMatcher
 import json
 import re
+import time
 from typing import Iterable
 
 import httpx
@@ -50,27 +51,57 @@ class MatchDecision:
     title_similarity: float | None = None
     artist_similarity: float | None = None
     duration_diff_seconds: float | None = None
+    error_code: str | None = None
+    error_message: str | None = None
 
 
 class BaseMusicSearchClient:
     source_name = "base"
 
+    def __init__(self, timeout: float = 10.0, retries: int = 2, backoff_seconds: float = 0.4):
+        self.timeout = timeout
+        self.retries = max(0, retries)
+        self.backoff_seconds = max(0.0, backoff_seconds)
+
     def search_tracks(self, query: str, limit: int = 5) -> list[CloudTrackCandidate]:
         raise NotImplementedError
+
+    def _call_with_retry(self, request_func):
+        attempt = 0
+        while True:
+            try:
+                return request_func()
+            except httpx.TimeoutException:
+                if attempt >= self.retries:
+                    raise
+            except httpx.HTTPStatusError as exc:
+                status = exc.response.status_code if exc.response is not None else None
+                if status not in {429, 500, 502, 503, 504} or attempt >= self.retries:
+                    raise
+            except httpx.HTTPError:
+                if attempt >= self.retries:
+                    raise
+
+            attempt += 1
+            sleep_for = self.backoff_seconds * (2 ** (attempt - 1))
+            if sleep_for > 0:
+                time.sleep(sleep_for)
 
 
 class NetEaseSearchClient(BaseMusicSearchClient):
     source_name = "netease"
 
-    def __init__(self, timeout: float = 10.0):
-        self.timeout = timeout
+    def __init__(self, timeout: float = 10.0, retries: int = 2, backoff_seconds: float = 0.4):
+        super().__init__(timeout=timeout, retries=retries, backoff_seconds=backoff_seconds)
 
     def search_tracks(self, query: str, limit: int = 5) -> list[CloudTrackCandidate]:
         url = "https://music.163.com/api/cloudsearch/pc"
         payload = {"s": query, "type": 1, "offset": 0, "limit": limit}
         headers = {"Referer": "https://music.163.com", "User-Agent": "MusicArch/0.1"}
 
-        resp = httpx.post(url, data=payload, headers=headers, timeout=self.timeout)
+        resp = self._call_with_retry(
+            lambda: httpx.post(url, data=payload, headers=headers, timeout=self.timeout)
+        )
         resp.raise_for_status()
         data = resp.json()
 
@@ -97,8 +128,8 @@ class NetEaseSearchClient(BaseMusicSearchClient):
 class QQMusicSearchClient(BaseMusicSearchClient):
     source_name = "qqmusic"
 
-    def __init__(self, timeout: float = 10.0):
-        self.timeout = timeout
+    def __init__(self, timeout: float = 10.0, retries: int = 2, backoff_seconds: float = 0.4):
+        super().__init__(timeout=timeout, retries=retries, backoff_seconds=backoff_seconds)
 
     def search_tracks(self, query: str, limit: int = 5) -> list[CloudTrackCandidate]:
         url = "https://c.y.qq.com/soso/fcgi-bin/client_search_cp"
@@ -132,7 +163,9 @@ class QQMusicSearchClient(BaseMusicSearchClient):
             "User-Agent": "MusicArch/0.1",
         }
 
-        resp = httpx.get(url, params=params, headers=headers, timeout=self.timeout)
+        resp = self._call_with_retry(
+            lambda: httpx.get(url, params=params, headers=headers, timeout=self.timeout)
+        )
         resp.raise_for_status()
 
         text = resp.text.strip()
@@ -164,16 +197,24 @@ class QQMusicSearchClient(BaseMusicSearchClient):
 class SpotifySearchClient(BaseMusicSearchClient):
     source_name = "spotify"
 
-    def __init__(self, access_token: str, timeout: float = 10.0):
+    def __init__(
+        self,
+        access_token: str,
+        timeout: float = 10.0,
+        retries: int = 2,
+        backoff_seconds: float = 0.4,
+    ):
+        super().__init__(timeout=timeout, retries=retries, backoff_seconds=backoff_seconds)
         self.access_token = access_token
-        self.timeout = timeout
 
     def search_tracks(self, query: str, limit: int = 5) -> list[CloudTrackCandidate]:
         url = "https://api.spotify.com/v1/search"
         headers = {"Authorization": f"Bearer {self.access_token}"}
         params = {"q": query, "type": "track", "limit": limit}
 
-        resp = httpx.get(url, headers=headers, params=params, timeout=self.timeout)
+        resp = self._call_with_retry(
+            lambda: httpx.get(url, headers=headers, params=params, timeout=self.timeout)
+        )
         resp.raise_for_status()
         data = resp.json()
 
@@ -210,24 +251,51 @@ class MetadataMatcher:
         self.duration_tolerance_seconds = duration_tolerance_seconds
         self.min_confidence = min_confidence
 
-    def search_candidates(self, local: LocalTrackInfo, limit_per_source: int = 5) -> list[CloudTrackCandidate]:
+    def _classify_error(self, exc: Exception) -> tuple[str, str]:
+        if isinstance(exc, httpx.TimeoutException):
+            return "timeout", str(exc)
+        if isinstance(exc, httpx.HTTPStatusError):
+            status = exc.response.status_code if exc.response is not None else "unknown"
+            return "http_status", f"HTTP {status}"
+        if isinstance(exc, httpx.HTTPError):
+            return "network", str(exc)
+        if isinstance(exc, (json.JSONDecodeError, ValueError)):
+            return "parse_error", str(exc)
+        return "unknown", str(exc)
+
+    def search_candidates(
+        self,
+        local: LocalTrackInfo,
+        limit_per_source: int = 5,
+    ) -> tuple[list[CloudTrackCandidate], list[tuple[str, str, str]]]:
         query = f"{local.artist} {local.title}".strip()
         candidates: list[CloudTrackCandidate] = []
+        errors: list[tuple[str, str, str]] = []
         for client in self.clients:
             try:
                 candidates.extend(client.search_tracks(query=query, limit=limit_per_source))
-            except Exception:
+            except Exception as exc:
+                code, message = self._classify_error(exc)
+                errors.append((client.source_name, code, message))
                 continue
-        return candidates
+        return candidates, errors
 
     def match(self, local: LocalTrackInfo, limit_per_source: int = 5) -> MatchDecision:
-        candidates = self.search_candidates(local, limit_per_source=limit_per_source)
+        candidates, errors = self.search_candidates(local, limit_per_source=limit_per_source)
         if not candidates:
+            error_code = None
+            error_message = None
+            if errors:
+                source, code, message = errors[0]
+                error_code = code
+                error_message = f"{source}: {message}"
             return MatchDecision(
                 status="not_found",
                 confidence=0.0,
                 reason="No cloud candidate found",
                 best_candidate=None,
+                error_code=error_code,
+                error_message=error_message,
             )
 
         scored: list[tuple[float, float, float, float | None, CloudTrackCandidate]] = []
@@ -282,6 +350,8 @@ class MetadataMatcher:
 
 def format_match_result(decision: MatchDecision) -> str:
     if decision.status == "not_found":
+        if decision.error_code and decision.error_message:
+            return f"未找到云端结果({decision.error_code}: {decision.error_message})"
         return "未找到云端结果"
     if not decision.best_candidate:
         return "匹配异常"
