@@ -29,6 +29,7 @@ from PyQt6.QtWidgets import (
 from .api_matcher import MetadataMatcher, NetEaseSearchClient, QQMusicSearchClient
 from .core_engine import MusicArchEngine
 from .library_scanner import MusicLibraryScanner
+from .view_state import RecordViewState
 from .workflow import MusicArchWorkflow
 
 
@@ -118,6 +119,14 @@ class MusicArchMainWindow(QMainWindow):
         self.current_dir: str = ""
         self.records: list[dict] = []
         self.filtered_indices: list[int] = []
+        self.page_index = 0
+        self.view_state = RecordViewState()
+        self.sort_field_map = {
+            "旧文件名": "old_file_name",
+            "新文件名": "new_file_name",
+            "状态": "status",
+            "匹配结果": "cloud_match_result",
+        }
 
         self._build_ui()
 
@@ -164,6 +173,32 @@ class MusicArchMainWindow(QMainWindow):
         self.search_input.setPlaceholderText("按旧文件名/新文件名/匹配结果搜索")
         self.search_input.textChanged.connect(self._on_filter_changed)
         filter_layout.addWidget(self.search_input, stretch=1)
+
+        filter_layout.addWidget(QLabel("排序"))
+        self.sort_by = QComboBox()
+        self.sort_by.addItems(["旧文件名", "新文件名", "状态", "匹配结果"])
+        self.sort_by.currentTextChanged.connect(self._on_filter_changed)
+        filter_layout.addWidget(self.sort_by)
+
+        self.sort_order = QComboBox()
+        self.sort_order.addItems(["升序", "降序"])
+        self.sort_order.currentTextChanged.connect(self._on_filter_changed)
+        filter_layout.addWidget(self.sort_order)
+
+        filter_layout.addWidget(QLabel("每页"))
+        self.page_size = QComboBox()
+        self.page_size.addItems(["200", "500", "1000", "全部"])
+        self.page_size.currentTextChanged.connect(self._on_filter_changed)
+        filter_layout.addWidget(self.page_size)
+
+        self.prev_page_button = QPushButton("上一页")
+        self.next_page_button = QPushButton("下一页")
+        self.page_label = QLabel("第 1 / 1 页")
+        self.prev_page_button.clicked.connect(self._on_prev_page)
+        self.next_page_button.clicked.connect(self._on_next_page)
+        filter_layout.addWidget(self.prev_page_button)
+        filter_layout.addWidget(self.next_page_button)
+        filter_layout.addWidget(self.page_label)
 
         self.table = QTableWidget(0, len(self.COLUMNS))
         self.table.setHorizontalHeaderLabels(self.COLUMNS)
@@ -277,6 +312,7 @@ class MusicArchMainWindow(QMainWindow):
             record["manual_confirmed"] = False
             record["skip_apply"] = False
         self.records = records
+        self.page_index = 0
         self._refresh_table()
         self._log(f"扫描结果数量: {len(records)}")
 
@@ -285,12 +321,14 @@ class MusicArchMainWindow(QMainWindow):
             record.setdefault("manual_confirmed", False)
             record["skip_apply"] = False
         self.records = records
+        self.page_index = 0
         self._refresh_table()
 
     def _handle_apply_finished(self, records: list[dict]) -> None:
         for record in records:
             record["skip_apply"] = False
         self.records = records
+        self.page_index = 0
         self._refresh_table()
 
     def _on_worker_progress(self, value: int, message: str) -> None:
@@ -315,9 +353,30 @@ class MusicArchMainWindow(QMainWindow):
         self.export_button.setEnabled(enabled)
         self.status_filter.setEnabled(enabled)
         self.search_input.setEnabled(enabled)
+        self.sort_by.setEnabled(enabled)
+        self.sort_order.setEnabled(enabled)
+        self.page_size.setEnabled(enabled)
+        self.prev_page_button.setEnabled(enabled)
+        self.next_page_button.setEnabled(enabled)
 
     def _refresh_table(self) -> None:
-        self.filtered_indices = self._get_filtered_indices()
+        sort_key = self.sort_field_map[self.sort_by.currentText()]
+        descending = self.sort_order.currentText() == "降序"
+        selected_size = self.page_size.currentText()
+        page_size = len(self.records) if selected_size == "全部" else int(selected_size)
+
+        self.view_state.set_records(self.records)
+        page = self.view_state.build(
+            status_filter=self.status_filter.currentText(),
+            keyword=self.search_input.text(),
+            sort_key=sort_key,
+            descending=descending,
+            page_size=page_size,
+            page_index=self.page_index,
+        )
+
+        self.page_index = page.page_index
+        self.filtered_indices = page.indices
         self.table.setRowCount(len(self.filtered_indices))
 
         for row, record_idx in enumerate(self.filtered_indices):
@@ -339,32 +398,9 @@ class MusicArchMainWindow(QMainWindow):
             elif status == "success":
                 self._paint_row(row, QColor(232, 255, 232))
 
-        self._log(f"当前筛选结果: {len(self.filtered_indices)} / {len(self.records)}")
-
-    def _get_filtered_indices(self) -> list[int]:
-        status_text = self.status_filter.currentText() if hasattr(self, "status_filter") else "全部"
-        keyword = self.search_input.text().strip().lower() if hasattr(self, "search_input") else ""
-
-        out: list[int] = []
-        for idx, record in enumerate(self.records):
-            status = str(record.get("status", ""))
-            if status_text != "全部" and status != status_text:
-                continue
-
-            if keyword:
-                haystack = " ".join(
-                    [
-                        str(record.get("old_file_name", "")),
-                        str(record.get("new_file_name", "")),
-                        str(record.get("cloud_match_result", "")),
-                    ]
-                ).lower()
-                if keyword not in haystack:
-                    continue
-
-            out.append(idx)
-
-        return out
+        self.page_label.setText(f"第 {page.page_index + 1} / {page.total_pages} 页")
+        self.prev_page_button.setEnabled(page.page_index > 0)
+        self.next_page_button.setEnabled(page.page_index < (page.total_pages - 1))
 
     def _status_for_display(self, record: dict) -> str:
         status = str(record.get("status", ""))
@@ -373,6 +409,16 @@ class MusicArchMainWindow(QMainWindow):
         return status
 
     def _on_filter_changed(self, *_args) -> None:
+        self.page_index = 0
+        self._refresh_table()
+
+    def _on_prev_page(self) -> None:
+        if self.page_index > 0:
+            self.page_index -= 1
+            self._refresh_table()
+
+    def _on_next_page(self) -> None:
+        self.page_index += 1
         self._refresh_table()
 
     def _on_table_context_menu(self, pos: QPoint) -> None:

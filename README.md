@@ -61,6 +61,8 @@ for record in records[:3]:
 - Status filter + keyword search for table rows
 - Right-click anomaly rows to mark manual confirmation before apply
 - Export anomaly rows to CSV for offline review
+- Sort controls (old/new name, status, match result)
+- Pagination controls (200/500/1000/all) for large libraries
 
 Notes:
 
