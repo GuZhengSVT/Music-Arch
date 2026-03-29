@@ -3,7 +3,7 @@ from __future__ import annotations
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import asdict, dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 from mutagen import File as MutagenFile
 
@@ -47,7 +47,11 @@ class MusicLibraryScanner:
         self.max_workers = max_workers
         self.filename_max_length = filename_max_length
 
-    def scan(self, root_dir: Path) -> list[TrackScanRecord]:
+    def scan(
+        self,
+        root_dir: Path,
+        progress_callback: Callable[[int, int, str], None] | None = None,
+    ) -> list[TrackScanRecord]:
         root = root_dir.expanduser().resolve()
         if not root.exists() or not root.is_dir():
             raise ValueError(f"Invalid scan directory: {root_dir}")
@@ -59,14 +63,23 @@ class MusicLibraryScanner:
         records: list[TrackScanRecord] = []
         with ThreadPoolExecutor(max_workers=self.max_workers) as pool:
             futures = [pool.submit(self._build_record, root, path) for path in audio_files]
+            total = len(futures)
+            done = 0
             for future in as_completed(futures):
                 records.append(future.result())
+                done += 1
+                if progress_callback:
+                    progress_callback(done, total, "Scanning files")
 
         records.sort(key=lambda item: item.relative_path.lower())
         return records
 
-    def scan_as_dicts(self, root_dir: Path) -> list[dict[str, Any]]:
-        return [item.to_dict() for item in self.scan(root_dir)]
+    def scan_as_dicts(
+        self,
+        root_dir: Path,
+        progress_callback: Callable[[int, int, str], None] | None = None,
+    ) -> list[dict[str, Any]]:
+        return [item.to_dict() for item in self.scan(root_dir, progress_callback=progress_callback)]
 
     def _iter_audio_files(self, root: Path):
         for path in root.rglob("*"):

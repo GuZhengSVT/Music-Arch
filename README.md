@@ -1,12 +1,13 @@
 # MusicArch
 
-Phase 1, Phase 2 and Phase 3 implementation of MusicArch core engine (non-GUI):
+Phase 1, Phase 2, Phase 3 and Phase 4 implementation of MusicArch:
 
 - Filename normalization (remove track prefix)
 - Invalid filename character replacement and truncation
 - Lyrics embedding with Mutagen for MP3/FLAC/M4A
 - Cloud metadata matching (NetEase/QQMusic/Spotify adapters + confidence scoring)
 - Large-folder scanning with concurrent traversal and table-ready data model
+- PyQt6 GUI with QThread workers (scan -> cloud match -> apply changes)
 
 ## Quick start
 
@@ -17,6 +18,7 @@ pip install -r requirements.txt
 export PYTHONPATH=src
 pytest -q
 python scripts/phase1_smoke_test.py
+python scripts/run_gui.py
 ```
 
 ## Notes
@@ -49,3 +51,15 @@ records = scanner.scan(Path("/path/to/music"))
 for record in records[:3]:
 	print(record.old_file_name, "->", record.new_file_name, record.status)
 ```
+
+## Phase 4 GUI
+
+- Top workspace row: folder selector + current path
+- Table columns: old file name, new file name, status, cloud match result
+- Action buttons: start scan, cloud match, apply changes
+- Bottom area: progress bar + realtime logs
+
+Notes:
+
+- GUI tasks run in QThread worker objects to avoid UI freeze on large folders.
+- `apply changes` keeps sidecar `.lrc` files and only renames them with audio files.
