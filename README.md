@@ -58,6 +58,9 @@ for record in records[:3]:
 - Table columns: old file name, new file name, status, cloud match result
 - Action buttons: start scan, cloud match, apply changes
 - Bottom area: progress bar + realtime logs
+- Status filter + keyword search for table rows
+- Right-click anomaly rows to mark manual confirmation before apply
+- Export anomaly rows to CSV for offline review
 
 Notes:
 

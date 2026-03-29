@@ -51,6 +51,11 @@ class MusicArchWorkflow:
         total = len(updated)
 
         for idx, record in enumerate(updated, start=1):
+            if record.get("skip_apply"):
+                if progress_callback:
+                    progress_callback(idx, total, f"Skipped: {record.get('old_file_name', '')}")
+                continue
+
             try:
                 updated_record = self._apply_one(record)
                 record.update(updated_record)

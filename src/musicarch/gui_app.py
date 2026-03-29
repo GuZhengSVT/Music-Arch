@@ -1,16 +1,21 @@
 from __future__ import annotations
 
+import csv
+from copy import deepcopy
 import sys
 from pathlib import Path
 
-from PyQt6.QtCore import QObject, QThread, pyqtSignal
+from PyQt6.QtCore import QObject, QPoint, Qt, QThread, pyqtSignal
 from PyQt6.QtGui import QColor
 from PyQt6.QtWidgets import (
     QApplication,
+    QComboBox,
     QFileDialog,
     QHBoxLayout,
     QLabel,
+    QLineEdit,
     QMainWindow,
+    QMenu,
     QMessageBox,
     QPushButton,
     QProgressBar,
@@ -112,6 +117,7 @@ class MusicArchMainWindow(QMainWindow):
 
         self.current_dir: str = ""
         self.records: list[dict] = []
+        self.filtered_indices: list[int] = []
 
         self._build_ui()
 
@@ -134,18 +140,36 @@ class MusicArchMainWindow(QMainWindow):
         self.scan_button = QPushButton("开始扫描")
         self.match_button = QPushButton("云端匹配")
         self.apply_button = QPushButton("应用修改")
+        self.export_button = QPushButton("导出异常CSV")
 
         self.scan_button.clicked.connect(self._on_start_scan)
         self.match_button.clicked.connect(self._on_start_match)
         self.apply_button.clicked.connect(self._on_start_apply)
+        self.export_button.clicked.connect(self._on_export_anomaly_csv)
 
         action_layout.addWidget(self.scan_button)
         action_layout.addWidget(self.match_button)
         action_layout.addWidget(self.apply_button)
+        action_layout.addWidget(self.export_button)
+
+        filter_layout = QHBoxLayout()
+        filter_layout.addWidget(QLabel("状态筛选"))
+        self.status_filter = QComboBox()
+        self.status_filter.addItems(["全部", "pending", "success", "anomaly"])
+        self.status_filter.currentTextChanged.connect(self._on_filter_changed)
+
+        filter_layout.addWidget(self.status_filter)
+        filter_layout.addWidget(QLabel("搜索"))
+        self.search_input = QLineEdit()
+        self.search_input.setPlaceholderText("按旧文件名/新文件名/匹配结果搜索")
+        self.search_input.textChanged.connect(self._on_filter_changed)
+        filter_layout.addWidget(self.search_input, stretch=1)
 
         self.table = QTableWidget(0, len(self.COLUMNS))
         self.table.setHorizontalHeaderLabels(self.COLUMNS)
         self.table.horizontalHeader().setStretchLastSection(True)
+        self.table.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.table.customContextMenuRequested.connect(self._on_table_context_menu)
 
         self.progress = QProgressBar()
         self.log_box = QTextEdit()
@@ -153,6 +177,7 @@ class MusicArchMainWindow(QMainWindow):
 
         main_layout.addLayout(top_layout)
         main_layout.addLayout(action_layout)
+        main_layout.addLayout(filter_layout)
         main_layout.addWidget(self.table)
         main_layout.addWidget(self.progress)
         main_layout.addWidget(self.log_box)
@@ -196,10 +221,27 @@ class MusicArchMainWindow(QMainWindow):
             QMessageBox.warning(self, "提示", "请先扫描目录")
             return
 
-        worker = ApplyWorker(self.workflow, self.records)
+        payload = deepcopy(self.records)
+        skipped = 0
+        confirmed = 0
+        for record in payload:
+            record["skip_apply"] = False
+            if str(record.get("status", "")) == "anomaly":
+                if bool(record.get("manual_confirmed")):
+                    record["status"] = "pending"
+                    confirmed += 1
+                else:
+                    record["skip_apply"] = True
+                    skipped += 1
+
+        if skipped == len(payload):
+            QMessageBox.information(self, "提示", "全部为未确认异常项，请先右键标记手动确认")
+            return
+
+        worker = ApplyWorker(self.workflow, payload)
         self._start_worker(
             worker=worker,
-            start_log="开始应用修改",
+            start_log=f"开始应用修改 (已确认异常: {confirmed}, 跳过未确认异常: {skipped})",
             finish_log="应用修改完成",
             on_finished=self._handle_apply_finished,
         )
@@ -231,15 +273,23 @@ class MusicArchMainWindow(QMainWindow):
         thread.start()
 
     def _handle_scan_finished(self, records: list[dict]) -> None:
+        for record in records:
+            record["manual_confirmed"] = False
+            record["skip_apply"] = False
         self.records = records
         self._refresh_table()
         self._log(f"扫描结果数量: {len(records)}")
 
     def _handle_match_finished(self, records: list[dict]) -> None:
+        for record in records:
+            record.setdefault("manual_confirmed", False)
+            record["skip_apply"] = False
         self.records = records
         self._refresh_table()
 
     def _handle_apply_finished(self, records: list[dict]) -> None:
+        for record in records:
+            record["skip_apply"] = False
         self.records = records
         self._refresh_table()
 
@@ -262,15 +312,20 @@ class MusicArchMainWindow(QMainWindow):
         self.scan_button.setEnabled(enabled)
         self.match_button.setEnabled(enabled)
         self.apply_button.setEnabled(enabled)
+        self.export_button.setEnabled(enabled)
+        self.status_filter.setEnabled(enabled)
+        self.search_input.setEnabled(enabled)
 
     def _refresh_table(self) -> None:
-        self.table.setRowCount(len(self.records))
+        self.filtered_indices = self._get_filtered_indices()
+        self.table.setRowCount(len(self.filtered_indices))
 
-        for row, record in enumerate(self.records):
+        for row, record_idx in enumerate(self.filtered_indices):
+            record = self.records[record_idx]
             values = [
                 str(record.get("old_file_name", "")),
                 str(record.get("new_file_name", "")),
-                str(record.get("status", "")),
+                self._status_for_display(record),
                 str(record.get("cloud_match_result", "")),
             ]
 
@@ -283,6 +338,101 @@ class MusicArchMainWindow(QMainWindow):
                 self._paint_row(row, QColor(255, 227, 227))
             elif status == "success":
                 self._paint_row(row, QColor(232, 255, 232))
+
+        self._log(f"当前筛选结果: {len(self.filtered_indices)} / {len(self.records)}")
+
+    def _get_filtered_indices(self) -> list[int]:
+        status_text = self.status_filter.currentText() if hasattr(self, "status_filter") else "全部"
+        keyword = self.search_input.text().strip().lower() if hasattr(self, "search_input") else ""
+
+        out: list[int] = []
+        for idx, record in enumerate(self.records):
+            status = str(record.get("status", ""))
+            if status_text != "全部" and status != status_text:
+                continue
+
+            if keyword:
+                haystack = " ".join(
+                    [
+                        str(record.get("old_file_name", "")),
+                        str(record.get("new_file_name", "")),
+                        str(record.get("cloud_match_result", "")),
+                    ]
+                ).lower()
+                if keyword not in haystack:
+                    continue
+
+            out.append(idx)
+
+        return out
+
+    def _status_for_display(self, record: dict) -> str:
+        status = str(record.get("status", ""))
+        if status == "anomaly" and bool(record.get("manual_confirmed")):
+            return "anomaly (已确认)"
+        return status
+
+    def _on_filter_changed(self, *_args) -> None:
+        self._refresh_table()
+
+    def _on_table_context_menu(self, pos: QPoint) -> None:
+        row = self.table.rowAt(pos.y())
+        if row < 0 or row >= len(self.filtered_indices):
+            return
+
+        record_idx = self.filtered_indices[row]
+        record = self.records[record_idx]
+        if str(record.get("status", "")) != "anomaly":
+            return
+
+        menu = QMenu(self)
+        if bool(record.get("manual_confirmed")):
+            action = menu.addAction("取消手动确认")
+        else:
+            action = menu.addAction("标记为手动确认")
+
+        selected = menu.exec(self.table.viewport().mapToGlobal(pos))
+        if selected == action:
+            record["manual_confirmed"] = not bool(record.get("manual_confirmed"))
+            if record["manual_confirmed"]:
+                self._log(f"已手动确认异常项: {record.get('old_file_name', '')}")
+            else:
+                self._log(f"已取消手动确认: {record.get('old_file_name', '')}")
+            self._refresh_table()
+
+    def _on_export_anomaly_csv(self) -> None:
+        anomalies = [item for item in self.records if str(item.get("status", "")) == "anomaly"]
+        if not anomalies:
+            QMessageBox.information(self, "提示", "当前没有异常项可导出")
+            return
+
+        default_name = "musicarch_anomalies.csv"
+        target, _ = QFileDialog.getSaveFileName(
+            self,
+            "导出异常项 CSV",
+            str(Path(self.current_dir or ".") / default_name),
+            "CSV Files (*.csv)",
+        )
+        if not target:
+            return
+
+        headers = [
+            "audio_path",
+            "old_file_name",
+            "new_file_name",
+            "status",
+            "manual_confirmed",
+            "cloud_match_result",
+            "error",
+        ]
+
+        with open(target, "w", newline="", encoding="utf-8-sig") as fp:
+            writer = csv.DictWriter(fp, fieldnames=headers)
+            writer.writeheader()
+            for row in anomalies:
+                writer.writerow({key: row.get(key, "") for key in headers})
+
+        self._log(f"异常项已导出: {target}")
 
     def _paint_row(self, row: int, color: QColor) -> None:
         for col in range(self.table.columnCount()):

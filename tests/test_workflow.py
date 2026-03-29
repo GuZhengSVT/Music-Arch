@@ -102,3 +102,60 @@ def test_match_records_formats_matched_result():
     out = workflow.match_records(records)
     assert out[0]["status"] == "pending"
     assert "匹配:" in out[0]["cloud_match_result"]
+
+
+def test_apply_changes_skips_unconfirmed_anomaly(tmp_path: Path):
+    old_audio = tmp_path / "bad.mp3"
+    old_audio.write_bytes(b"audio")
+
+    workflow = MusicArchWorkflow()
+    called = {"value": False}
+
+    def _fake_embed(_path):
+        called["value"] = True
+        return True
+
+    workflow.engine.embed_lrc_for_audio = _fake_embed
+
+    records = [
+        {
+            "audio_path": str(old_audio),
+            "relative_path": "Artist/Album/bad.mp3",
+            "old_file_name": "bad.mp3",
+            "new_file_name": "bad.mp3",
+            "rename_needed": False,
+            "status": "anomaly",
+            "manual_confirmed": False,
+            "skip_apply": True,
+        }
+    ]
+
+    out = workflow.apply_changes(records)
+    assert out[0]["status"] == "anomaly"
+    assert called["value"] is False
+
+
+def test_apply_changes_allows_confirmed_anomaly(tmp_path: Path):
+    old_audio = tmp_path / "fixme.mp3"
+    old_audio.write_bytes(b"audio")
+
+    workflow = MusicArchWorkflow()
+    workflow.engine.embed_lrc_for_audio = lambda _path: True
+
+    records = [
+        {
+            "audio_path": str(old_audio),
+            "relative_path": "Artist/Album/fixme.mp3",
+            "old_file_name": "fixme.mp3",
+            "new_file_name": "fixed.mp3",
+            "rename_needed": True,
+            "has_lrc": False,
+            "status": "pending",
+            "manual_confirmed": True,
+            "skip_apply": False,
+        }
+    ]
+
+    out = workflow.apply_changes(records)
+    assert out[0]["status"] == "success"
+    assert (tmp_path / "fixed.mp3").exists()
