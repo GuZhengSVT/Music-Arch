@@ -73,3 +73,23 @@ def test_scan_as_dicts_returns_serializable_payload(tmp_path: Path):
     assert isinstance(payload, list)
     assert isinstance(payload[0], dict)
     assert payload[0]["old_file_name"] == "Song.m4a"
+
+
+def test_scan_stream_as_dicts_emits_batches(tmp_path: Path):
+    (tmp_path / "a.mp3").write_bytes(b"a")
+    (tmp_path / "b.flac").write_bytes(b"b")
+    (tmp_path / "c.m4a").write_bytes(b"c")
+
+    scanner = MusicLibraryScanner(max_workers=2)
+    scanner._read_basic_metadata = lambda _: {}
+
+    received: list[list[dict]] = []
+
+    def _on_batch(batch: list[dict]):
+        received.append(batch)
+
+    records = scanner.scan_stream_as_dicts(tmp_path, batch_callback=_on_batch, batch_size=2)
+
+    assert len(records) == 3
+    assert len(received) == 2
+    assert sum(len(x) for x in received) == 3

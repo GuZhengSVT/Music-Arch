@@ -34,6 +34,7 @@ from .workflow import MusicArchWorkflow
 
 
 class ScanWorker(QObject):
+    batch_ready = pyqtSignal(list)
     finished = pyqtSignal(list)
     progress = pyqtSignal(int, str)
     error = pyqtSignal(str)
@@ -45,10 +46,18 @@ class ScanWorker(QObject):
 
     def run(self) -> None:
         try:
-            records = self.scanner.scan_as_dicts(Path(self.root_dir), progress_callback=self._on_progress)
+            records = self.scanner.scan_stream_as_dicts(
+                Path(self.root_dir),
+                batch_callback=self._on_batch,
+                progress_callback=self._on_progress,
+                batch_size=200,
+            )
             self.finished.emit(records)
         except Exception as exc:
             self.error.emit(str(exc))
+
+    def _on_batch(self, batch: list[dict]) -> None:
+        self.batch_ready.emit(batch)
 
     def _on_progress(self, current: int, total: int, message: str) -> None:
         percent = int((current / total) * 100) if total else 0
@@ -230,6 +239,10 @@ class MusicArchMainWindow(QMainWindow):
             QMessageBox.warning(self, "提示", "请先选择文件夹")
             return
 
+        self.records = []
+        self.page_index = 0
+        self._refresh_table()
+
         worker = ScanWorker(self.scanner, self.current_dir)
         self._start_worker(
             worker=worker,
@@ -297,6 +310,8 @@ class MusicArchMainWindow(QMainWindow):
         thread.started.connect(worker.run)
         worker.progress.connect(self._on_worker_progress)
         worker.error.connect(self._on_worker_error)
+        if isinstance(worker, ScanWorker):
+            worker.batch_ready.connect(self._handle_scan_batch)
         worker.finished.connect(on_finished)
         worker.finished.connect(lambda _payload: self._on_worker_done(finish_log))
 
@@ -308,13 +323,23 @@ class MusicArchMainWindow(QMainWindow):
         thread.start()
 
     def _handle_scan_finished(self, records: list[dict]) -> None:
+        # Use final sorted payload returned by scanner for deterministic order.
         for record in records:
-            record["manual_confirmed"] = False
-            record["skip_apply"] = False
+            record.setdefault("manual_confirmed", False)
+            record.setdefault("skip_apply", False)
         self.records = records
         self.page_index = 0
         self._refresh_table()
         self._log(f"扫描结果数量: {len(records)}")
+
+    def _handle_scan_batch(self, batch: list[dict]) -> None:
+        for record in batch:
+            record["manual_confirmed"] = False
+            record["skip_apply"] = False
+            self.records.append(record)
+
+        self._refresh_table()
+        self._log(f"扫描中: 已发现 {len(self.records)} 条")
 
     def _handle_match_finished(self, records: list[dict]) -> None:
         for record in records:

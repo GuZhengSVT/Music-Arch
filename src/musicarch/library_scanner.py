@@ -81,6 +81,48 @@ class MusicLibraryScanner:
     ) -> list[dict[str, Any]]:
         return [item.to_dict() for item in self.scan(root_dir, progress_callback=progress_callback)]
 
+    def scan_stream_as_dicts(
+        self,
+        root_dir: Path,
+        batch_callback: Callable[[list[dict[str, Any]]], None] | None = None,
+        progress_callback: Callable[[int, int, str], None] | None = None,
+        batch_size: int = 200,
+    ) -> list[dict[str, Any]]:
+        root = root_dir.expanduser().resolve()
+        if not root.exists() or not root.is_dir():
+            raise ValueError(f"Invalid scan directory: {root_dir}")
+
+        audio_files = list(self._iter_audio_files(root))
+        if not audio_files:
+            return []
+
+        records: list[dict[str, Any]] = []
+        chunk: list[dict[str, Any]] = []
+        safe_batch_size = max(1, batch_size)
+
+        with ThreadPoolExecutor(max_workers=self.max_workers) as pool:
+            futures = [pool.submit(self._build_record, root, path) for path in audio_files]
+            total = len(futures)
+            done = 0
+            for future in as_completed(futures):
+                record = future.result().to_dict()
+                records.append(record)
+                chunk.append(record)
+                done += 1
+
+                if progress_callback:
+                    progress_callback(done, total, "Scanning files")
+
+                if batch_callback and len(chunk) >= safe_batch_size:
+                    batch_callback(chunk)
+                    chunk = []
+
+        if batch_callback and chunk:
+            batch_callback(chunk)
+
+        records.sort(key=lambda item: str(item.get("relative_path", "")).lower())
+        return records
+
     def _iter_audio_files(self, root: Path):
         for path in root.rglob("*"):
             if not path.is_file():

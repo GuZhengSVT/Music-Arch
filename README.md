@@ -63,6 +63,7 @@ for record in records[:3]:
 - Export anomaly rows to CSV for offline review
 - Sort controls (old/new name, status, match result)
 - Pagination controls (200/500/1000/all) for large libraries
+- Incremental scan rendering (results appear while scanning)
 
 Notes:
 
