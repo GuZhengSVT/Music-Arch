@@ -1,36 +1,41 @@
 # MusicArch
 
-[English Version](#english-version)
+MusicArch 是一个用于本地音乐库整理的自动化工具，面向以下典型场景：
 
-MusicArch 是一个面向本地音乐库的自动化整理工具，目标是把「大体量、命名混乱、歌词缺失、元数据不一致」的音乐目录整理为可维护的结构。
+- 文件命名混乱（轨道号前缀、非法字符、空格杂乱）
+- 标签信息缺失或不一致（标题、歌手、专辑）
+- 本地歌词缺失，且需要批量补齐
+- 大型音乐目录处理时，希望可中断、可恢复、可人工复核
 
-项目当前包含完整的四阶段能力：
+项目以模块化方式实现扫描、匹配、应用变更和断点恢复，并提供 PyQt6 图形界面。
 
-- 文件名标准化与安全重命名
-- 歌词读取与嵌入 (MP3 / FLAC / M4A)
-- 云端元数据匹配与异常识别
-- 大目录并发扫描 + GUI 可视化操作流
+## 目录
 
-## 1. 项目简介
+- 项目能力概览
+- 快速开始
+- GUI 使用流程
+- 核心模块说明
+- 数据结构与状态字段
+- 断点文件格式
+- 脚本与命令速查
+- 常见问题与排障
+- 开发与测试
+- 贡献指南
+- English Summary
 
-MusicArch 主要解决以下问题：
+## 项目能力概览
 
-- 音乐文件名混杂轨道号、非法字符、冗余空格
-- 本地标签不完整，难以与云端信息核对
-- 单次处理目录较大时，传统脚本容易阻塞、失败后难恢复
+当前版本支持以下能力：
 
-围绕这些问题，项目采用模块化设计：
+1. 文件名标准化与安全重命名
+2. 歌词读取与嵌入（MP3 / FLAC / M4A）
+3. 云端元数据匹配与异常识别
+4. 大目录并发扫描与 GUI 可视化操作
+5. 检查点保存与恢复（JSONL）
 
-- `core_engine`: 文件名清洗、歌词嵌入、音频格式分发
-- `library_scanner`: 多线程扫描本地音频并构建结构化记录
-- `api_matcher`: 云端搜索客户端 + 相似度评分 + 匹配决策
-- `workflow`: 扫描结果匹配并落地重命名/异常标记
-- `checkpoint_store`: JSONL 断点存档与恢复
-- `gui_app` / `view_state`: PyQt6 图形界面与列表过滤分页状态管理
+## 快速开始
 
-## 2. 功能及使用方法
-
-### 2.1 环境准备
+### 1. 环境准备
 
 ```bash
 python3 -m venv .venv
@@ -39,279 +44,320 @@ pip install -r requirements.txt
 export PYTHONPATH=src
 ```
 
-依赖见 `requirements.txt`：
+说明：
 
-- `mutagen`: 音频标签读写
-- `httpx`: 云端 API 请求
-- `PyQt6`: GUI
-- `pytest`: 测试
+- 本项目源码位于 src 目录。
+- 若未设置 PYTHONPATH=src，直接运行 pytest 或脚本时可能出现 ModuleNotFoundError: No module named musicarch。
+- macOS/Linux 可把 export 命令写入 shell 配置文件实现持久化。
 
-### 2.2 一键快速验证
-
-```bash
-pytest -q
-python scripts/phase1_smoke_test.py
-```
-
-`phase1_smoke_test.py` 会演示：
-
-- 文件名规范化效果
-- 歌词嵌入调用入口
-
-### 2.3 启动 GUI (推荐使用方式)
+### 2. 快速验证
 
 ```bash
-python scripts/run_gui.py
+PYTHONPATH=src pytest -q
+PYTHONPATH=src python scripts/phase1_smoke_test.py
 ```
 
-GUI 典型流程：
+phase1_smoke_test.py 会展示：
+
+- 文件名清洗示例
+- 歌词嵌入入口示例
+
+### 3. 启动 GUI
+
+```bash
+PYTHONPATH=src python scripts/run_gui.py
+```
+
+## GUI 使用流程
+
+推荐流程如下：
 
 1. 选择音乐目录
-2. 点击扫描，生成待处理记录
-3. 点击云端匹配，获取 `matched/anomaly/not_found` 判断
-4. 人工确认异常项 (必要时)
-5. 点击应用更改，执行重命名与歌词嵌入
+2. 扫描文件，生成待处理记录
+3. 云端匹配，得到 matched 或 anomaly 或 not_found
+4. 人工查看异常项
+5. 写入元数据（可单独执行）
+6. 应用重命名（可单独执行）
+7. 写入歌词（可单独执行）
+8. 保存检查点，支持后续继续处理
 
-### 2.4 核心功能说明
+批处理建议：
 
-#### A. 文件名清洗与重命名
+- 默认按批次执行（常见为每批 200 条）
+- 每步执行后先抽样检查结果，再继续下一批
 
-- 去除常见轨道号前缀，如 `01 - `、`Track 07 `
-- 替换非法文件名字符，如 `\\ / : * ? " < > |`
-- 去除控制字符与多余空白
-- 超长文件名按安全长度截断，尽量保持词边界
-- 冲突时自动回退到安全命名 (如追加 `(1)`)
+## 核心模块说明
 
-#### B. 歌词嵌入
+### core_engine
 
-- 自动寻找同名 `.lrc` 侧车歌词文件
-- MP3: 写入 ID3 `USLT`
-- FLAC: 写入 `LYRICS`
-- M4A: 写入 `©lyr`
-- `.lrc` 文件默认保留，仅在重命名时与音频同步改名
+职责：
 
-#### C. 云端匹配与异常判断
+- 文件名清洗与规范化
+- 音频格式分发（MP3、FLAC、M4A）
+- 标签写入（title、artist、album）
+- 歌词嵌入（本地 LRC 或外部歌词文本）
 
-- 基于标题/艺术家相似度 + 时长差进行综合评分
-- 支持重试与退避，降低网络波动影响
-- 对低置信度/时长偏差过大记录标记异常，便于人工复核
+关键行为：
 
-#### D. 大库处理能力
+- 去除轨道号前缀（例如 01、Track 07）
+- 处理非法文件名字符与控制字符
+- 超长文件名截断并尽量保留词边界
 
-- 并发扫描，适配大目录
-- GUI 通过 `QThread` 执行任务，避免界面卡死
-- 支持过滤、搜索、排序、分页
-- 支持任务中断、检查点保存与恢复
+### library_scanner
 
-### 2.5 作为 Python 库调用 (示例)
+职责：
 
-```python
-from pathlib import Path
+- 递归扫描音频文件
+- 并发读取基础元数据
+- 构建 TrackScanRecord 列表
 
-from musicarch import MusicLibraryScanner
-from musicarch.api_matcher import LocalTrackInfo, MetadataMatcher, NetEaseSearchClient
+输出字段包括：
 
-scanner = MusicLibraryScanner(max_workers=8)
-records = scanner.scan(Path("/path/to/music"))
-print(f"scanned: {len(records)}")
+- 原路径、相对路径、原文件名、新文件名
+- 是否存在同名 lrc
+- 解析到的 title、artist、album、duration
+- 初始状态与异常信息
 
-matcher = MetadataMatcher(clients=[NetEaseSearchClient()])
-decision = matcher.match(LocalTrackInfo(title="晴天", artist="周杰伦", duration_seconds=269))
-print(decision.status, decision.confidence, decision.reason)
+### api_matcher
+
+职责：
+
+- 对接云端搜索客户端
+- 计算相似度与置信度
+- 决策匹配结果
+
+内置策略：
+
+- 标题相似度权重 0.5
+- 歌手相似度权重 0.3
+- 时长得分权重 0.2
+- 支持网络重试和退避
+- 将低置信度或时长偏差过大的结果标为 anomaly
+
+### workflow
+
+职责：
+
+- 串联匹配结果与落地变更
+- 分步执行元数据写入、重命名、歌词写入
+- 提供 preflight 检查与错误分类
+
+典型状态：
+
+- pending
+- success
+- anomaly
+- cancelled
+
+### checkpoint_store
+
+职责：
+
+- 以 JSONL 保存 metadata 与 records
+- 支持后续恢复继续执行
+- 使用临时文件再替换，降低写入中断风险
+
+### gui_app / view_state
+
+职责：
+
+- GUI 页面与任务调度
+- 列表过滤、排序、分页
+- 长任务在后台线程执行，避免主线程卡死
+
+## 数据结构与状态字段
+
+扫描记录常见字段（简化）：
+
+- audio_path: 音频绝对路径
+- relative_path: 相对扫描根目录路径
+- old_file_name: 原文件名
+- new_file_name: 目标文件名
+- rename_needed: 是否需要重命名
+- has_lrc: 是否存在同名 lrc
+- lrc_path: lrc 文件路径
+- status: pending 或 success 或 anomaly 或 cancelled
+- cloud_match_result: 云匹配文本描述
+- title 或 artist 或 album: 解析或匹配后的元数据
+- error: 异常信息
+- error_code: 异常分类
+- retryable: 是否建议重试
+
+## 断点文件格式
+
+检查点文件采用 JSONL，第一行为元信息，其余行为记录。
+
+示例：
+
+```json
+{"_meta": {"root_dir": "/music", "created_at": "2026-04-02T10:00:00"}}
+{"audio_path": "/music/A/a.mp3", "status": "pending"}
+{"audio_path": "/music/B/b.flac", "status": "success"}
 ```
 
-## 3. 注意事项及欢迎提 Issue
+恢复时会读取 metadata 与 records，供 GUI 或脚本继续处理。
 
-### 使用注意事项
+## 脚本与命令速查
 
-- 建议先对音乐目录做一次备份，再执行批量应用。
-- 网络 API 受目标平台可用性、频率限制和地区网络状态影响。
-- 匹配结果存在统计误差，`anomaly` 项建议人工确认后再应用。
-- 文件系统兼容性存在平台差异，Windows/macOS/Linux 对非法字符和路径长度限制不同。
-- 本项目不会主动删除 `.lrc` 文件；默认策略是保留并与音频同步命名。
+### 图形界面
 
-### Issue 反馈建议
+```bash
+PYTHONPATH=src python scripts/run_gui.py
+```
 
-欢迎提交 Issue，推荐附带以下信息，便于快速定位：
+### 阶段冒烟测试
+
+```bash
+PYTHONPATH=src python scripts/phase1_smoke_test.py
+```
+
+### 检查点恢复脚本
+
+```bash
+PYTHONPATH=src python scripts/restore_from_checkpoint.py --help
+```
+
+### 对账脚本
+
+```bash
+PYTHONPATH=src python scripts/reconcile_audio_lrc_by_longer_name.py --help
+```
+
+### 单元测试
+
+```bash
+PYTHONPATH=src pytest -q
+```
+
+## 常见问题与排障
+
+### 1) 报错 ModuleNotFoundError: No module named musicarch
+
+原因：未设置 PYTHONPATH=src。
+
+解决：
+
+```bash
+export PYTHONPATH=src
+```
+
+或在命令前临时设置：
+
+```bash
+PYTHONPATH=src pytest -q
+```
+
+### 2) 云端匹配经常失败或超时
+
+可能原因：网络环境、接口限流、目标平台临时不可用。
+
+建议：
+
+- 降低并发或减小批次
+- 稍后重试 anomaly 或 not_found 项
+- 先执行本地可完成步骤（重命名、元数据）
+
+### 3) 处理大目录时中断
+
+建议：
+
+- 每批执行后保存检查点
+- 重启后从检查点恢复
+- 保留处理日志便于定位问题
+
+### 4) 担心批量操作误改文件
+
+强烈建议：
+
+- 先备份音乐目录
+- 先在小目录演练
+- 先扫一批、看结果、再继续扩大范围
+
+## 开发与测试
+
+### 依赖
+
+- mutagen: 音频标签读写
+- httpx: 网络请求
+- PyQt6: 图形界面
+- pytest: 测试
+
+### 目录结构
+
+```text
+src/musicarch/
+	api_matcher.py
+	checkpoint_store.py
+	core_engine.py
+	gui_app.py
+	library_scanner.py
+	view_state.py
+	workflow.py
+
+scripts/
+	phase1_smoke_test.py
+	reconcile_audio_lrc_by_longer_name.py
+	restore_from_checkpoint.py
+	run_gui.py
+
+tests/
+	test_api_matcher.py
+	test_checkpoint_store.py
+	test_core_engine.py
+	test_library_scanner.py
+	test_view_state.py
+	test_workflow.py
+```
+
+### 开发建议流程
+
+1. 先补测试，再改实现
+2. 保持单次改动聚焦一个问题
+3. 处理批量文件前先做小样本验证
+4. 提交前运行完整测试
+
+## 贡献指南
+
+欢迎 Issue 与 PR。
+
+提交 Issue 时建议提供：
 
 - 操作系统与 Python 版本
-- 复现步骤 (尽量最小化)
+- 最小复现步骤
 - 期望结果与实际结果
-- 报错日志 / 堆栈信息 / 截图
-- 脱敏后的示例文件名或目录结构
+- 错误日志或堆栈
+- 脱敏后的样例文件名或目录
 
-可在仓库的 Issues 页面提交问题与建议，也欢迎功能请求和体验反馈。
+提交 PR 建议流程：
 
-## 4. 贡献者
-
-本项目由本人（GuZhengSVT）在Gemini-3.1-pro与ChatGPT-5.3-Codex辅助下完成，全程Vibe Coding没有写过一行代码：）  
-所以任何人可以随便使用。
-
-如果你希望参与开发，欢迎提交 PR：
-
-1. Fork 并创建分支
+1. Fork 仓库并创建分支
 2. 编写或更新测试
-3. 提交清晰的 Commit 信息
-4. 发起 Pull Request 并描述变更动机与影响范围
+3. 使用清晰提交信息
+4. 在 PR 描述中说明动机、影响范围、回归风险
 
 ---
 
-如果这个项目对你有帮助，欢迎 Star 与 Issue 交流。
+如果这个项目对你有帮助，欢迎 Star 和反馈。
 
-## English Version
+## English Summary
 
-MusicArch is an automation tool for organizing local music libraries. Its goal is to turn large, messy, lyric-missing, and metadata-inconsistent music folders into a maintainable structure.
+MusicArch is a local music library organizer with modular processing:
 
-The project currently includes a complete four-phase capability set:
+- filename normalization and safe rename
+- metadata writing for MP3 or FLAC or M4A
+- cloud matching and anomaly detection
+- lyric embedding from local lrc or online source
+- checkpoint save and restore in JSONL
+- GUI workflow for scan, review, and apply
 
-- Filename normalization and safe renaming
-- Lyric parsing and embedding (MP3 / FLAC / M4A)
-- Cloud metadata matching and anomaly detection
-- Concurrent large-folder scanning with a GUI-based workflow
-
-## 1. Project Overview
-
-MusicArch mainly solves these issues:
-
-- Filenames mixed with track prefixes, illegal characters, and redundant spaces
-- Incomplete local tags that are hard to verify against cloud metadata
-- Traditional scripts blocking or failing without recovery on large directories
-
-To address these challenges, the project uses a modular design:
-
-- `core_engine`: filename cleaning, lyric embedding, and audio format dispatching
-- `library_scanner`: multi-threaded local audio scan and structured record building
-- `api_matcher`: cloud search clients, similarity scoring, and match decision logic
-- `workflow`: apply matching results and perform rename/anomaly marking
-- `checkpoint_store`: JSONL checkpoint save and restore
-- `gui_app` / `view_state`: PyQt6 GUI and list filter/pagination state management
-
-## 2. Features and Usage
-
-### 2.1 Environment Setup
+Quick start:
 
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
-export PYTHONPATH=src
+PYTHONPATH=src pytest -q
+PYTHONPATH=src python scripts/run_gui.py
 ```
 
-Dependencies are listed in `requirements.txt`:
-
-- `mutagen`: audio tag read/write
-- `httpx`: cloud API requests
-- `PyQt6`: GUI
-- `pytest`: testing
-
-### 2.2 Quick Validation
-
-```bash
-pytest -q
-python scripts/phase1_smoke_test.py
-```
-
-`phase1_smoke_test.py` demonstrates:
-
-- filename normalization behavior
-- lyric embedding entry points
-
-### 2.3 Launch GUI (Recommended)
-
-```bash
-python scripts/run_gui.py
-```
-
-Typical GUI workflow:
-
-1. Select your music folder.
-2. Click scan to build processing records.
-3. Click cloud match to get `matched/anomaly/not_found` decisions.
-4. Manually review anomaly items when needed.
-5. Click apply changes to execute renaming and lyric embedding.
-
-### 2.4 Core Features
-
-#### A. Filename Cleaning and Renaming
-
-- Removes common track prefixes, such as `01 - ` and `Track 07 `
-- Replaces illegal filename characters, such as `\\ / : * ? " < > |`
-- Removes control characters and redundant spaces
-- Truncates overly long filenames safely while preserving word boundaries when possible
-- Uses safe fallback naming on conflicts (for example appending `(1)`)
-
-#### B. Lyric Embedding
-
-- Automatically detects sidecar `.lrc` lyric files
-- MP3: writes ID3 `USLT`
-- FLAC: writes `LYRICS`
-- M4A: writes `©lyr`
-- `.lrc` files are preserved by default and renamed together with audio files when needed
-
-#### C. Cloud Matching and Anomaly Detection
-
-- Uses title/artist similarity plus duration difference for composite scoring
-- Supports retry and backoff to reduce impact from network instability
-- Marks low-confidence or high-duration-difference records as anomalies for manual review
-
-#### D. Large Library Processing
-
-- Concurrent scanning for large folders
-- Uses `QThread` in GUI to avoid UI freezing
-- Supports filtering, searching, sorting, and pagination
-- Supports task interruption, checkpoint save, and restore
-
-### 2.5 Use as a Python Library (Example)
-
-```python
-from pathlib import Path
-
-from musicarch import MusicLibraryScanner
-from musicarch.api_matcher import LocalTrackInfo, MetadataMatcher, NetEaseSearchClient
-
-scanner = MusicLibraryScanner(max_workers=8)
-records = scanner.scan(Path("/path/to/music"))
-print(f"scanned: {len(records)}")
-
-matcher = MetadataMatcher(clients=[NetEaseSearchClient()])
-decision = matcher.match(LocalTrackInfo(title="Qing Tian", artist="Jay Chou", duration_seconds=269))
-print(decision.status, decision.confidence, decision.reason)
-```
-
-## 3. Notes and Welcome to Open Issues
-
-### Usage Notes
-
-- It is recommended to back up your music directory before batch applying changes.
-- Cloud APIs may be affected by service availability, rate limits, and regional network conditions.
-- Matching results are probabilistic; anomaly items should be reviewed manually before applying.
-- Filesystem constraints differ across platforms. Windows/macOS/Linux have different limits on illegal characters and path length.
-- This project does not proactively delete `.lrc` files; by default they are preserved and renamed together with the audio files.
-
-### Issue Reporting Guidelines
-
-Issues are welcome. To help troubleshooting, please include:
-
-- OS and Python version
-- Reproduction steps (preferably minimal)
-- Expected behavior vs actual behavior
-- Error logs / stack traces / screenshots
-- Sanitized sample filenames or directory structures
-
-You can submit issues and suggestions on the repository Issues page. Feature requests and UX feedback are also welcome.
-
-## 4. Contributors
-
-This project was completed by me (GuZhengSVT) with assistance from Gemini-3.1-pro and ChatGPT-5.3-Codex, using a full vibe-coding workflow without writing code manually :)
-So anyone is free to use it.
-
-If you would like to contribute, feel free to open a PR:
-
-1. Fork and create a branch.
-2. Add or update tests.
-3. Write clear commit messages.
-4. Open a Pull Request and describe motivation and impact.
-
----
-
-If this project helps you, a Star and an Issue are always appreciated.
+Note: because source files are under src, set PYTHONPATH=src before running tests or scripts.
