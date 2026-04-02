@@ -1,0 +1,201 @@
+root=/Volumes/taurus/音乐
+suspect_count=199
+/Volumes/taurus/音乐/-萤川-/《声之形》OP-恋をしたのは~为何我会坠入爱河/-萤川- - 《声之形》OP-为何我会坠入爱河~恋をしたのは（Cover aiko）.MP3	audio_stem_starts_with_symbol
+/Volumes/taurus/音乐/-萤川-/《声之形》OP-恋をしたのは~为何我会坠入爱河/-萤川- - 《声之形》OP-为何我会坠入爱河~恋をしたのは（Cover aiko）.lrc	lrc_stem_starts_with_symbol
+/Volumes/taurus/音乐/-萤川-/《声之形》OP-恋をしたのは~为何我会坠入爱河/1-01 《声之形》OP-为何我会坠入爱河~恋をしたのは（Cover aiko）.lrc	orphan_lrc_no_same_stem_audio
+/Volumes/taurus/音乐/ALisa/治愈系/1-03 The Way I Still Love You（纯音乐）（翻自 Reynard Silva）.lrc	orphan_lrc_no_same_stem_audio
+/Volumes/taurus/音乐/Aimer/Aimer special concert with スロヴァキア国立放送交響楽団 _ARIA STRINGS/Aimer - Ref꞉rain.lrc	orphan_lrc_no_same_stem_audio
+/Volumes/taurus/音乐/Akie秋绘/冬氤。2016-17/1-01 心拍数♯0822（翻自 初音ミク）.lrc	orphan_lrc_no_same_stem_audio
+/Volumes/taurus/音乐/Akie秋绘/无雪的故乡（人声本家）/Akie秋绘 - 无雪的故乡.lrc	orphan_lrc_no_same_stem_audio
+/Volumes/taurus/音乐/Andrew Prahlow/Outer Wilds - Original Soundtrack/Andrew Prahlow - Travelers.lrc	orphan_lrc_no_same_stem_audio
+/Volumes/taurus/音乐/Angel Note/それは舞い散る桜のように 完全版 アレンジアルバム「evolution」/Angel Note - 優しさの雨に抱かれて －secret mix－.lrc	orphan_lrc_no_same_stem_audio
+/Volumes/taurus/音乐/AniFace/三音成曲/AniFace - Miss U the 715th time.lrc	orphan_lrc_no_same_stem_audio
+/Volumes/taurus/音乐/AniFace/三音成曲/AniFace - See U for 123 seconds.lrc	orphan_lrc_no_same_stem_audio
+/Volumes/taurus/音乐/AniFace/致青春的你/AniFace - 晴天的周末在去学校补课的路上遇见了喜欢的人.lrc	orphan_lrc_no_same_stem_audio
+/Volumes/taurus/音乐/AniFace/致青春的你/AniFace - 生日当天的傍晚意外收到了来自暗恋对象的祝福.lrc	orphan_lrc_no_same_stem_audio
+/Volumes/taurus/音乐/Annika Wells/_ Being Sober/_ Being Sober.lrc	lrc_stem_starts_with_symbol
+/Volumes/taurus/音乐/Annika Wells/_ Being Sober/_ Being Sober.m4a	audio_stem_starts_with_symbol,possibly_digit_prefix_stripped
+/Volumes/taurus/音乐/Assen捷, 双笙（陈元汐）/【剑网3八周年原创】春秋侠客/【剑网3八周年原创】《春秋侠客》纯歌版.lrc	lrc_stem_starts_with_symbol
+/Volumes/taurus/音乐/Assen捷, 双笙（陈元汐）/【剑网3八周年原创】春秋侠客/【剑网3八周年原创】《春秋侠客》纯歌版.mp3	audio_stem_starts_with_symbol
+/Volumes/taurus/音乐/BLACKDD/四月十一/BLACKDD - 四月十一.lrc	orphan_lrc_no_same_stem_audio
+/Volumes/taurus/音乐/Bandari/Moonlight Bay/Bandari - Moonglow.lrc	orphan_lrc_no_same_stem_audio
+/Volumes/taurus/音乐/CMJ/CMJ 纯音乐/久石让-千与千寻（纯音乐） - CMJ.lrc	orphan_lrc_no_same_stem_audio
+/Volumes/taurus/音乐/Candy_Wind/和煦的糖果风/Candy_Wind - 和煦的糖果风.lrc	orphan_lrc_no_same_stem_audio
+/Volumes/taurus/音乐/Candy_Wind/夏日、教室与望着窗外的我/Candy_Wind - 夏日、教室与望着窗外的我.lrc	orphan_lrc_no_same_stem_audio
+/Volumes/taurus/音乐/Candy_Wind/拂晓车站/Candy_Wind - 青空.lrc	orphan_lrc_no_same_stem_audio
+/Volumes/taurus/音乐/ChenDjoy/「3D奇妙听觉」自然声与轻音乐的融合/「3D交响」Viva La Vida（配雷雨）.lrc	lrc_stem_starts_with_symbol
+/Volumes/taurus/音乐/ChenDjoy/「3D奇妙听觉」自然声与轻音乐的融合/「3D交响」Viva La Vida（配雷雨）.mp3	audio_stem_starts_with_symbol
+/Volumes/taurus/音乐/ChenDjoy/「3D奇妙听觉」自然声与轻音乐的融合/「3D雷雨助眠」Good Night Lullaby.lrc	lrc_stem_starts_with_symbol
+/Volumes/taurus/音乐/ChenDjoy/「3D奇妙听觉」自然声与轻音乐的融合/「3D雷雨助眠」Good Night Lullaby.mp3	audio_stem_starts_with_symbol
+/Volumes/taurus/音乐/Daoko/打上花火/Daoko - Forever Friends.lrc	orphan_lrc_no_same_stem_audio
+/Volumes/taurus/音乐/David Hoffner/最新热歌慢摇16/1-22 Positive Outlook.lrc	orphan_lrc_no_same_stem_audio
+/Volumes/taurus/音乐/Delacey/华为Mate 40 系列/Delacey - Dream It Possible(曙光版).lrc	orphan_lrc_no_same_stem_audio
+/Volumes/taurus/音乐/Famishin/サノバウィッチ オリジナルサウンドトラック/Famishin - 切なくて.lrc	orphan_lrc_no_same_stem_audio
+/Volumes/taurus/音乐/Foxtail-Grass Studio/Remember_C -summer-/Foxtail-Grass Studio - 日陰と帽子と風鈴と.lrc	orphan_lrc_no_same_stem_audio
+/Volumes/taurus/音乐/HOYO-MiX/Starfall/HOYO-MiX - Starfall (伴奏).lrc	orphan_lrc_no_same_stem_audio
+/Volumes/taurus/音乐/HOYO-MiX/「飞彩镌流年」游戏原声EP专辑/HOYO-MiX - 神女劈观·唤情 Devastation and Redemption.lrc	orphan_lrc_no_same_stem_audio
+/Volumes/taurus/音乐/HOYO-MiX/原神-珍珠之歌2 The Shimmering Voyage Vol. 2/HOYO-MiX - 华梦组曲 Phantasm Suite.lrc	orphan_lrc_no_same_stem_audio
+/Volumes/taurus/音乐/HOYO-MiX/原神-珍珠之歌2 The Shimmering Voyage Vol. 2/HOYO-MiX - 纯真的歌谣 Song of Innocence.lrc	orphan_lrc_no_same_stem_audio
+/Volumes/taurus/音乐/HOYO-MiX/崩坏3-Alive-Original Soundtrack/HOYO-MiX - Fantasy Note.lrc	orphan_lrc_no_same_stem_audio
+/Volumes/taurus/音乐/HOYO-MiX/崩坏3-Paradox-Original Soundtrack/HOYO-MiX - IRAS 17514.lrc	orphan_lrc_no_same_stem_audio
+/Volumes/taurus/音乐/Hanser/hanser唱的歌(181016开始的/1-01 我的悲伤是水做的 日语版.lrc	orphan_lrc_no_same_stem_audio
+/Volumes/taurus/音乐/Jason Huang/再飞行（交响乐版）/Jason Huang - 再飞行（交响乐版 short ver）.lrc	orphan_lrc_no_same_stem_audio
+/Volumes/taurus/音乐/Jusqu'à Grand-Père/千年の戀/Jusqu'à Grand-Père - 桜道.lrc	orphan_lrc_no_same_stem_audio
+/Volumes/taurus/音乐/Kan9/声之形/Kan9 - slt(电影《声之形》插曲)（翻自 牛尾憲輔）.lrc	orphan_lrc_no_same_stem_audio
+/Volumes/taurus/音乐/Kous, ef/in focus-FResora-/○+● - kous,ef.lrc	lrc_stem_starts_with_symbol
+/Volumes/taurus/音乐/Kous, ef/in focus-FResora-/○+● - kous,ef.mp3	audio_stem_starts_with_symbol
+/Volumes/taurus/音乐/Kyle Xian/《打上花火》和《病名为爱》其实是一首歌/1-01 V.A. - 《打上花火》和《病名为爱》其实是一首歌.lrc	orphan_lrc_no_same_stem_audio
+/Volumes/taurus/音乐/MANYO/FLOWERS 秋篇 ORIGINAL SOUNDTRACK -AUTOMNE-/1-12 Mémoire.lrc	orphan_lrc_no_same_stem_audio
+/Volumes/taurus/音乐/Maple暖枫/时落叶影/Maple暖枫 - 时落叶影.lrc	orphan_lrc_no_same_stem_audio
+/Volumes/taurus/音乐/Mark Petrie/Go Time/Mark Petrie - Go Time.lrc	orphan_lrc_no_same_stem_audio
+/Volumes/taurus/音乐/Matryoshka/Virgin Babylon Records Sampler 20161126/Matryoshka - Sacred Play Secret Place.lrc	orphan_lrc_no_same_stem_audio
+/Volumes/taurus/音乐/Mei/✘ 按 下 暫 停 你 將 變 的 清 醒 且 墮 落/✘ 按 下 暫 停 你 將 變 的 清 醒 且 墮 落.lrc	lrc_stem_starts_with_symbol
+/Volumes/taurus/音乐/Mei/✘ 按 下 暫 停 你 將 變 的 清 醒 且 墮 落/✘ 按 下 暫 停 你 將 變 的 清 醒 且 墮 落.m4a	audio_stem_starts_with_symbol
+/Volumes/taurus/音乐/Parion圆周率/Reunion In The Rain/1-01 等风来.lrc	orphan_lrc_no_same_stem_audio
+/Volumes/taurus/音乐/Pianoboy高至豪/The truth that you leave/1-01 The truth that you leave.lrc	orphan_lrc_no_same_stem_audio
+/Volumes/taurus/音乐/SILENT SIREN/S/SILENT SIREN - secret base ~君がくれたもの~.lrc	orphan_lrc_no_same_stem_audio
+/Volumes/taurus/音乐/SNH48/醉清风/醉清风.lrc	orphan_lrc_no_same_stem_audio
+/Volumes/taurus/音乐/Saiakoup/Rainight/1-01 Rainight.lrc	orphan_lrc_no_same_stem_audio
+/Volumes/taurus/音乐/Snigellin/Live For You/1-01 Live for You.lrc	orphan_lrc_no_same_stem_audio
+/Volumes/taurus/音乐/SynBlazer/之前的一些demo/%.lrc	lrc_stem_starts_with_symbol
+/Volumes/taurus/音乐/SynBlazer/之前的一些demo/%.m4a	audio_stem_starts_with_symbol,possibly_digit_prefix_stripped
+/Volumes/taurus/音乐/TRUE/Sincerely/TRUE - Sincerely.lrc	orphan_lrc_no_same_stem_audio
+/Volumes/taurus/音乐/V.A/最新热歌慢摇95/1-38 未闻花名 (口琴版).lrc	orphan_lrc_no_same_stem_audio
+/Volumes/taurus/音乐/Vk/Vk歌曲集/Vk - 白石溪（翻自 洛天依）.lrc	orphan_lrc_no_same_stem_audio
+/Volumes/taurus/音乐/elijah woods/24,7, 365/_7, 365.lrc	lrc_stem_starts_with_symbol
+/Volumes/taurus/音乐/elijah woods/24,7, 365/_7, 365.m4a	audio_stem_starts_with_symbol,possibly_digit_prefix_stripped
+/Volumes/taurus/音乐/nisw/3D/【3D】maps.lrc	lrc_stem_starts_with_symbol
+/Volumes/taurus/音乐/nisw/3D/【3D】maps.mp3	audio_stem_starts_with_symbol
+/Volumes/taurus/音乐/ɴᴏᴛʜɪɴɢ/Shape of You/ɴᴏᴛʜɪɴɢ. - Ed Sheeran   J.Fla - Shape of You (Mashup).lrc	lrc_stem_starts_with_symbol,orphan_lrc_no_same_stem_audio
+/Volumes/taurus/音乐/̶7̶o̶e̶y̶/‭ ‭‭ ‭‭ ‭‭ ‭‭ ‭‭ ‭‭ ‭/‭ ‭‭ ‭‭ ‭‭ ‭‭ ‭‭ ‭‭ ‭.lrc	lrc_stem_starts_with_symbol
+/Volumes/taurus/音乐/̶7̶o̶e̶y̶/‭ ‭‭ ‭‭ ‭‭ ‭‭ ‭‭ ‭‭ ‭/‭ ‭‭ ‭‭ ‭‭ ‭‭ ‭‭ ‭‭ ‭.m4a	audio_stem_starts_with_symbol
+/Volumes/taurus/音乐/Георгий Виноградов, 俄罗斯军队模范亚历山德罗夫红旗歌舞团/Песни нашей Родины. Выпуск 2/Катюша.lrc	lrc_stem_starts_with_symbol
+/Volumes/taurus/音乐/Георгий Виноградов, 俄罗斯军队模范亚历山德罗夫红旗歌舞团/Песни нашей Родины. Выпуск 2/Катюша.m4a	audio_stem_starts_with_symbol
+/Volumes/taurus/音乐/Интернационал/Интернационал.lrc	lrc_stem_starts_with_symbol
+/Volumes/taurus/音乐/Интернационал/Интернационал.m4a	audio_stem_starts_with_symbol
+/Volumes/taurus/音乐/しゃろう/2_23 AM/_23 AM.lrc	lrc_stem_starts_with_symbol
+/Volumes/taurus/音乐/しゃろう/2_23 AM/_23 AM.m4a	audio_stem_starts_with_symbol,possibly_digit_prefix_stripped
+/Volumes/taurus/音乐/ユージ・ナイトー/Tiny Dungeon -BLACK and WHITE- O.S.T/ユージ・ナイトー - 黒翼は~と.lrc	orphan_lrc_no_same_stem_audio
+/Volumes/taurus/音乐/冰弦, HITA, 小爱的妈, 玄觞, 纱朵, 叶洛洛, 林清弄, 少年霜, 千是, 赫赫, 依穆炎, 兰草薄荷, 幻枫冷月, 喵☆酱, 千月兔/每年除夕一首大合唱~/【24只】2014～唱于你听～.lrc	lrc_stem_starts_with_symbol
+/Volumes/taurus/音乐/冰弦, HITA, 小爱的妈, 玄觞, 纱朵, 叶洛洛, 林清弄, 少年霜, 千是, 赫赫, 依穆炎, 兰草薄荷, 幻枫冷月, 喵☆酱, 千月兔/每年除夕一首大合唱~/【24只】2014～唱于你听～.mp3	audio_stem_starts_with_symbol
+/Volumes/taurus/音乐/刀酱/5_20AM/_20AM.lrc	lrc_stem_starts_with_symbol
+/Volumes/taurus/音乐/刀酱/5_20AM/_20AM.m4a	audio_stem_starts_with_symbol,possibly_digit_prefix_stripped
+/Volumes/taurus/音乐/千月兔, 落嫣诗涵, 血精灵小仙, 言心悠, 清漪, 引月兮, Tacke竹桑, 少年霜, 腾云驾雾琉璃仙, 水一, 蔚蔚, 重小烟, 洛华无影, 幻枫冷月, 玖仟璎珞, 千是, 依穆炎, 玉洁, 豆豆涟兰, 唐六幺, 玄觞, 纱朵/每年除夕一首大合唱~/【22只】2012～放肆喧嚣～.lrc	lrc_stem_starts_with_symbol
+/Volumes/taurus/音乐/千月兔, 落嫣诗涵, 血精灵小仙, 言心悠, 清漪, 引月兮, Tacke竹桑, 少年霜, 腾云驾雾琉璃仙, 水一, 蔚蔚, 重小烟, 洛华无影, 幻枫冷月, 玖仟璎珞, 千是, 依穆炎, 玉洁, 豆豆涟兰, 唐六幺, 玄觞, 纱朵/每年除夕一首大合唱~/【22只】2012～放肆喧嚣～.mp3	audio_stem_starts_with_symbol
+/Volumes/taurus/音乐/千月兔,Smile_小千,俺酱,奇然,笛呆子囚牛,妖蝠,等什么君(邓寓君),KenZong,米琪小连杀,陈拾月（只有影子）,小时姑娘,栩影,叶洛洛,心然,醋醋,封茗囧菌,双笙（陈元汐）,茶理理,洛少爷,玄觞/【26只】2020～此间未来～/【26只】2020～此间未来～.lrc	lrc_stem_starts_with_symbol
+/Volumes/taurus/音乐/千月兔,Smile_小千,俺酱,奇然,笛呆子囚牛,妖蝠,等什么君(邓寓君),KenZong,米琪小连杀,陈拾月（只有影子）,小时姑娘,栩影,叶洛洛,心然,醋醋,封茗囧菌,双笙（陈元汐）,茶理理,洛少爷,玄觞/【26只】2020～此间未来～/【26只】2020～此间未来～.m4a	audio_stem_starts_with_symbol
+/Volumes/taurus/音乐/千界/剑网3九周年原创《十四弦歌》/千界 - 十四弦歌.lrc	orphan_lrc_no_same_stem_audio
+/Volumes/taurus/音乐/南极白熊/蝉证/南极白熊 - 蝉证序.lrc	orphan_lrc_no_same_stem_audio
+/Volumes/taurus/音乐/原田ひとみ/Asterisk _eden_ _ ORIGINAL SOUNDTRACK/原田ひとみ - little explorer.lrc	orphan_lrc_no_same_stem_audio
+/Volumes/taurus/音乐/双笙 (陈元汐), 封茗囧菌, Nisw/3D/【3D】We Don't Talk Anymore.lrc	lrc_stem_starts_with_symbol
+/Volumes/taurus/音乐/双笙 (陈元汐), 封茗囧菌, Nisw/3D/【3D】We Don't Talk Anymore.mp3	audio_stem_starts_with_symbol
+/Volumes/taurus/音乐/双笙 (陈元汐)/灵秀/【古来疯】灵秀-双笙.lrc	lrc_stem_starts_with_symbol
+/Volumes/taurus/音乐/双笙 (陈元汐)/灵秀/【古来疯】灵秀-双笙.mp3	audio_stem_starts_with_symbol
+/Volumes/taurus/音乐/双笙（陈元汐）/【剑网3七周年原创】杏林无花/【剑网3七周年原创】杏林无花.lrc	lrc_stem_starts_with_symbol
+/Volumes/taurus/音乐/双笙（陈元汐）/【剑网3七周年原创】杏林无花/【剑网3七周年原创】杏林无花.m4a	audio_stem_starts_with_symbol
+/Volumes/taurus/音乐/双笙（陈元汐）/京城妖奇谈/1-01 京城妖奇谈.lrc	orphan_lrc_no_same_stem_audio
+/Volumes/taurus/音乐/双笙（陈元汐）/别赋（翻唱）/双笙（陈元汐） - 别赋（Cover 慕寒）.lrc	orphan_lrc_no_same_stem_audio
+/Volumes/taurus/音乐/双笙（陈元汐）/可念不可说（翻唱）/1-01 可念不可说（Cover 崔子格）.lrc	orphan_lrc_no_same_stem_audio
+/Volumes/taurus/音乐/双笙（陈元汐）/外婆桥/1-01 外婆桥（Cover 初音ミク）.lrc	orphan_lrc_no_same_stem_audio
+/Volumes/taurus/音乐/双笙（陈元汐）/大鱼（翻唱）/1-01 大鱼  （Cover 周深）.lrc	orphan_lrc_no_same_stem_audio
+/Volumes/taurus/音乐/双笙（陈元汐）/天下手游同人音乐/1-02 冰心明.lrc	orphan_lrc_no_same_stem_audio
+/Volumes/taurus/音乐/双笙（陈元汐）/提灯照河山（翻唱）/1-01 提灯照河山（Cover 司夏）.lrc	orphan_lrc_no_same_stem_audio
+/Volumes/taurus/音乐/双笙（陈元汐）/故梦（翻唱）/1-01 故梦（Cover 橙翼）.lrc	orphan_lrc_no_same_stem_audio
+/Volumes/taurus/音乐/双笙（陈元汐）/未分类专辑/【星火行动】朝汐（泠鸢&双笙）.lrc	lrc_stem_starts_with_symbol
+/Volumes/taurus/音乐/双笙（陈元汐）/未分类专辑/【星火行动】朝汐（泠鸢&双笙）.mp3	audio_stem_starts_with_symbol
+/Volumes/taurus/音乐/双笙（陈元汐）/栖枝/1-01 栖枝.lrc	orphan_lrc_no_same_stem_audio
+/Volumes/taurus/音乐/双笙（陈元汐）/盆栽观察日记（Cover初音未来）/01 盆栽观察日记（Cover 初音未来）.lrc	orphan_lrc_no_same_stem_audio
+/Volumes/taurus/音乐/双笙（陈元汐）/竹枝词/1-01 竹枝词.lrc	orphan_lrc_no_same_stem_audio
+/Volumes/taurus/音乐/双笙（陈元汐）/萌舞OL/01 时节锦绣.lrc	orphan_lrc_no_same_stem_audio
+/Volumes/taurus/音乐/叶洛洛/琼花房/1-01 琼花房.lrc	orphan_lrc_no_same_stem_audio
+/Volumes/taurus/音乐/吃口宵夜/樱花草/1-01 樱花草（超甜女声）（翻自 Sweety）.lrc	orphan_lrc_no_same_stem_audio
+/Volumes/taurus/音乐/吉克隽逸/十三亿分贝 第十六期/吉克隽逸 - 不要怕.lrc	orphan_lrc_no_same_stem_audio
+/Volumes/taurus/音乐/吕博文/执笔少年/吕博文 - 马尾.lrc	orphan_lrc_no_same_stem_audio
+/Volumes/taurus/音乐/周深/一期一会《未闻花名》/周深 - 一期一会《未闻花名》（Cover 茅野愛衣,戸松遥,早見沙織）.lrc	orphan_lrc_no_same_stem_audio
+/Volumes/taurus/音乐/圈9/命名为遇见/圈9 - 命名为遇见.lrc	orphan_lrc_no_same_stem_audio
+/Volumes/taurus/音乐/圈9/生如逆旅/圈9 - 生如逆旅（Cover 米津玄师）.lrc	orphan_lrc_no_same_stem_audio
+/Volumes/taurus/音乐/坂本龍一/Ryuichi Sakamoto Playing The Piano 2009_Out Of Noise/1-11 Koko.lrc	orphan_lrc_no_same_stem_audio
+/Volumes/taurus/音乐/夏璃夜/なんでもないや,没什么大不了 -Acoustic ver.-/1-01 なんでもないや_没什么大不了 -Acoustic ver.-.lrc	orphan_lrc_no_same_stem_audio
+/Volumes/taurus/音乐/天門/Asterisk _eden_ _ ORIGINAL SOUNDTRACK/天門 - Sion.lrc	orphan_lrc_no_same_stem_audio
+/Volumes/taurus/音乐/天門/ef - a tale of melodies. ORIGINAL SOUNDTRACK ~elegia~/天門 - A moon filled sky.lrc	orphan_lrc_no_same_stem_audio
+/Volumes/taurus/音乐/太一/（笑）/（笑）.lrc	lrc_stem_starts_with_symbol
+/Volumes/taurus/音乐/太一/（笑）/（笑）.m4a	audio_stem_starts_with_symbol
+/Volumes/taurus/音乐/姚海威/ACG改编/《未闻花名》ED《secret base》【钢琴版】.lrc	lrc_stem_starts_with_symbol
+/Volumes/taurus/音乐/姚海威/ACG改编/《未闻花名》ED《secret base》【钢琴版】.mp3	audio_stem_starts_with_symbol
+/Volumes/taurus/音乐/宝野聡史/TVアニメ「うらら迷路帖」オリジナル・サウンドトラック/宝野聡史 - うららの心得.lrc	orphan_lrc_no_same_stem_audio
+/Volumes/taurus/音乐/封茗囧菌, 洛少爷/《倘若无我》/《倘若无我》.lrc	lrc_stem_starts_with_symbol
+/Volumes/taurus/音乐/封茗囧菌, 洛少爷/《倘若无我》/《倘若无我》.mp3	audio_stem_starts_with_symbol
+/Volumes/taurus/音乐/封茗囧菌/傲娇先生/封茗囧菌 - 傲娇先生.lrc	orphan_lrc_no_same_stem_audio
+/Volumes/taurus/音乐/封茗囧菌/影子小姐/封茗囧菌 - 影子小姐.lrc	orphan_lrc_no_same_stem_audio
+/Volumes/taurus/音乐/封茗囧菌/白露（节气物语系列）/封茗囧菌 - 白露（节气物语系列）.lrc	orphan_lrc_no_same_stem_audio
+/Volumes/taurus/音乐/封茗囧菌/笛月/01 笛月.lrc	orphan_lrc_no_same_stem_audio
+/Volumes/taurus/音乐/封茗囧菌/解药/01 解药（Cover 颜小健）.lrc	orphan_lrc_no_same_stem_audio
+/Volumes/taurus/音乐/少年霜/所思/少年霜 - 所思.lrc	orphan_lrc_no_same_stem_audio
+/Volumes/taurus/音乐/尧十三/北方的女王(demo)/1-01 北方的女王(demo).lrc	orphan_lrc_no_same_stem_audio
+/Volumes/taurus/音乐/山田屋カズ/Tiny Dungeon -BLACK and WHITE- O.S.T/山田屋カズ - 震える指先.lrc	orphan_lrc_no_same_stem_audio
+/Volumes/taurus/音乐/张杰/年轻的战场/1-01 年轻的战场.lrc	orphan_lrc_no_same_stem_audio
+/Volumes/taurus/音乐/张苡小萌/热门华语266/1-01 未闻花名 (国语).lrc	orphan_lrc_no_same_stem_audio
+/Volumes/taurus/音乐/慕寒/热门华语268/1-01 画中仙.lrc	orphan_lrc_no_same_stem_audio
+/Volumes/taurus/音乐/慕寒/落霞云归/慕寒 - 落霞云归.lrc	orphan_lrc_no_same_stem_audio
+/Volumes/taurus/音乐/春茶/愛にできることはまだあるかい/春茶 - 愛にできることはまだあるかい.lrc	orphan_lrc_no_same_stem_audio
+/Volumes/taurus/音乐/昼夜/哄你入睡 II/【钢琴】SecretBase未闻花名ED.lrc	lrc_stem_starts_with_symbol
+/Volumes/taurus/音乐/昼夜/哄你入睡 II/【钢琴】SecretBase未闻花名ED.mp3	audio_stem_starts_with_symbol
+/Volumes/taurus/音乐/晴愔/初见·《新倩女幽魂》歌曲集/晴愔 - 十世镜·情为何物.lrc	orphan_lrc_no_same_stem_audio
+/Volumes/taurus/音乐/松本文紀/サクラノ詩 サウンドトラックCD/松本文紀 - 夢の歩みを見上げて.lrc	orphan_lrc_no_same_stem_audio
+/Volumes/taurus/音乐/柠安/过饱和天空/柠安 - 过饱和天空.lrc	orphan_lrc_no_same_stem_audio
+/Volumes/taurus/音乐/柠露/「二胡」大鱼/「二胡」大鱼.lrc	lrc_stem_starts_with_symbol
+/Volumes/taurus/音乐/柠露/「二胡」大鱼/「二胡」大鱼.mp3	audio_stem_starts_with_symbol
+/Volumes/taurus/音乐/柠露/「二胡」棠梨煎雪/01 「二胡」棠梨煎雪（Cover 银临）.lrc	orphan_lrc_no_same_stem_audio
+/Volumes/taurus/音乐/柠露/「古筝」棠梨煎雪/1-01 「古筝」棠梨煎雪（Cover 银临）.lrc	orphan_lrc_no_same_stem_audio
+/Volumes/taurus/音乐/每年一首大合唱/【23人】2023～一梦一歌～.m4a	audio_stem_starts_with_symbol
+/Volumes/taurus/音乐/每年一首大合唱/【30只】2013～见到你就很幸福！～.lrc	lrc_stem_starts_with_symbol
+/Volumes/taurus/音乐/每年一首大合唱/【30只】2013～见到你就很幸福！～.mp3	audio_stem_starts_with_symbol
+/Volumes/taurus/音乐/每年一首大合唱/【31只】2017～陪你到世界尽头～.lrc	lrc_stem_starts_with_symbol
+/Volumes/taurus/音乐/每年一首大合唱/【31只】2017～陪你到世界尽头～.mp3	audio_stem_starts_with_symbol
+/Volumes/taurus/音乐/每年一首大合唱/【32只】2016～谢谢陌生的你～.lrc	lrc_stem_starts_with_symbol
+/Volumes/taurus/音乐/每年一首大合唱/【32只】2016～谢谢陌生的你～.mp3	audio_stem_starts_with_symbol
+/Volumes/taurus/音乐/每年一首大合唱/【34只】2018～朝你靠近～.lrc	lrc_stem_starts_with_symbol
+/Volumes/taurus/音乐/每年一首大合唱/【34只】2018～朝你靠近～.mp3	audio_stem_starts_with_symbol
+/Volumes/taurus/音乐/每年一首大合唱/【48只】2011～祝福乐章～.lrc	lrc_stem_starts_with_symbol
+/Volumes/taurus/音乐/每年一首大合唱/【48只】2011～祝福乐章～.mp3	audio_stem_starts_with_symbol
+/Volumes/taurus/音乐/泠鸢yousa/【泠鸢翻唱2019】/泠鸢yousa - 勾指起誓.lrc	orphan_lrc_no_same_stem_audio
+/Volumes/taurus/音乐/泠鸢yousa/最新热歌慢摇114/1-01 星と君が消えた日.lrc	orphan_lrc_no_same_stem_audio
+/Volumes/taurus/音乐/洛少爷/是风动/洛少爷 - 是风动（小少年ver）.lrc	orphan_lrc_no_same_stem_audio
+/Volumes/taurus/音乐/流仙/洛阳怀/流仙 - 洛阳怀.lrc	orphan_lrc_no_same_stem_audio
+/Volumes/taurus/音乐/流仙/簪花人间/流仙 - 簪花人间.lrc	orphan_lrc_no_same_stem_audio
+/Volumes/taurus/音乐/清予SeiYo/清予日翻/清予SeiYo - 命に嫌われている.lrc	orphan_lrc_no_same_stem_audio
+/Volumes/taurus/音乐/清秋秋, 双笙（陈元汐）, 星魅, Aisa, 巫汐/【天谕-6P】云垂风烟令/【天谕-6P】云垂风烟令（Cover 一群女神）.lrc	lrc_stem_starts_with_symbol
+/Volumes/taurus/音乐/清秋秋, 双笙（陈元汐）, 星魅, Aisa, 巫汐/【天谕-6P】云垂风烟令/【天谕-6P】云垂风烟令（Cover 一群女神）.mp3	audio_stem_starts_with_symbol
+/Volumes/taurus/音乐/澤野弘之/「医龍 Team Medical Dragon」オリジナルサウンドトラック/澤野弘之 - Blue Dragon(piano&guitarver).lrc	orphan_lrc_no_same_stem_audio
+/Volumes/taurus/音乐/灰澈/旧曲补档/灰澈 - 森林.lrc	orphan_lrc_no_same_stem_audio
+/Volumes/taurus/音乐/白羽hano/白羽の翻弹合集/白羽hano - ATRI -My Dear Moments-：Days of Love.lrc	orphan_lrc_no_same_stem_audio
+/Volumes/taurus/音乐/石磊Leøn, 柠露/「大司乐坊」倩音流年/「大司乐坊」倩音流年.lrc	lrc_stem_starts_with_symbol
+/Volumes/taurus/音乐/石磊Leøn, 柠露/「大司乐坊」倩音流年/「大司乐坊」倩音流年.mp3	audio_stem_starts_with_symbol
+/Volumes/taurus/音乐/秋风MusiX, 双笙 (陈元汐)/那一天从梦中醒来/01 那一天从梦中醒来.lrc	orphan_lrc_no_same_stem_audio
+/Volumes/taurus/音乐/织梦令, 深藏不陆, CRITTY, 楚歌, 云三, 涂山花花, 许多葵, 执素兮, 千月兔, 玄觞, 双笙（陈元汐）, 秦且歌, 墨雨晨, 萌叔Daze/【H6】夏日清凉颂/【剑三13P】《夏日清凉颂》（Cover 葉月ゆら）.lrc	lrc_stem_starts_with_symbol
+/Volumes/taurus/音乐/织梦令, 深藏不陆, CRITTY, 楚歌, 云三, 涂山花花, 许多葵, 执素兮, 千月兔, 玄觞, 双笙（陈元汐）, 秦且歌, 墨雨晨, 萌叔Daze/【H6】夏日清凉颂/【剑三13P】《夏日清凉颂》（Cover 葉月ゆら）.mp3	audio_stem_starts_with_symbol
+/Volumes/taurus/音乐/绘梨衣/热门华语267/1-01 天ノ弱.lrc	orphan_lrc_no_same_stem_audio
+/Volumes/taurus/音乐/绯村柯北, 流月, 冥月, 玄觞, 银临, 卡修Rui, 叶洛洛, 千界, 曾小Cee, 少年霜, 孙羽幽, 凑诗, 钟祺源, 乌拉喵, 千是, 赫赫, 龟娘, 梦岚, 夏初凝, 殊隐, 千夜琉璃, 兰草薄荷, 千月兔/每年除夕一首大合唱~/【24只】2015～不屑言败～.lrc	lrc_stem_starts_with_symbol
+/Volumes/taurus/音乐/绯村柯北, 流月, 冥月, 玄觞, 银临, 卡修Rui, 叶洛洛, 千界, 曾小Cee, 少年霜, 孙羽幽, 凑诗, 钟祺源, 乌拉喵, 千是, 赫赫, 龟娘, 梦岚, 夏初凝, 殊隐, 千夜琉璃, 兰草薄荷, 千月兔/每年除夕一首大合唱~/【24只】2015～不屑言败～.mp3	audio_stem_starts_with_symbol
+/Volumes/taurus/音乐/胡歌/仙剑奇侠传三 电视原声带/忘记时间.lrc	orphan_lrc_no_same_stem_audio
+/Volumes/taurus/音乐/花澤香菜/恋愛サーキュレーション & あとがたり/花澤香菜 - 恋愛サーキュレーション.lrc	orphan_lrc_no_same_stem_audio
+/Volumes/taurus/音乐/花玲/处处傻/花玲 - 处处傻.lrc	orphan_lrc_no_same_stem_audio
+/Volumes/taurus/音乐/花粥/粥打野/1-05 长岛.lrc	orphan_lrc_no_same_stem_audio
+/Volumes/taurus/音乐/茶理理/猹狸翻唱场/1-03 星与你消失之日-完整版（Cover 泠鸢Yousa）.lrc	orphan_lrc_no_same_stem_audio
+/Volumes/taurus/音乐/蔡健雅/崩坏3-Onwards-Original Soundtrack/蔡健雅 - Nightglow.lrc	orphan_lrc_no_same_stem_audio
+/Volumes/taurus/音乐/西坂恭平/PCゲーム「 ぼくの一人戦争 」オリジナル・サウンドトラック/2-13 ふたりの果て -ピアノ独奏-.lrc	orphan_lrc_no_same_stem_audio
+/Volumes/taurus/音乐/遥そら/天使☆騒々 RE-BOOT! キャラクターソング Vol.4 「惚れて揺れて恋焦がれ」/1-01 惚れて揺れて恋焦がれ.lrc	orphan_lrc_no_same_stem_audio
+/Volumes/taurus/音乐/邓壬鑫/夜の钢琴III/邓壬鑫 - 下个路口见【纯音乐版】.lrc	orphan_lrc_no_same_stem_audio
+/Volumes/taurus/音乐/邱有句/夏の喚く/1-01 夏の喚く.lrc	orphan_lrc_no_same_stem_audio
+/Volumes/taurus/音乐/鎖那/Hush a by little girl/鎖那 - 彼女は旅に出る.lrc	orphan_lrc_no_same_stem_audio
+/Volumes/taurus/音乐/陈亦洺, Mario/给某某（ 广播剧《某某》第一季主题曲《给某某》 ）/《给某某》丨木苏里原著《某某》广播剧主题曲.lrc	lrc_stem_starts_with_symbol
+/Volumes/taurus/音乐/陈亦洺, Mario/给某某（ 广播剧《某某》第一季主题曲《给某某》 ）/《给某某》丨木苏里原著《某某》广播剧主题曲.m4a	audio_stem_starts_with_symbol
+/Volumes/taurus/音乐/陈泫孝/静悄悄/01 静悄悄（Cover：大泫）.lrc	orphan_lrc_no_same_stem_audio
+/Volumes/taurus/音乐/陕西燕子/遇见/陕西燕子 - 遇见（陕西话）.lrc	orphan_lrc_no_same_stem_audio
+/Volumes/taurus/音乐/雪霏岚岚, 早木旋子, 张小她, 倒悬的橘子, 双笙（陈元汐）, 宁采臣丶在唱歌, A路人, 漆柚, YUKIri, warma, LKs, 洛天依Official, 乐正绫, LS/【bilibili音乐出品】一话一世界（《一花依世界》方言合唱版,bilibili好乡音活动曲）/【bilibili音乐】一话一世界 《一花依世界》方言合唱版.lrc	lrc_stem_starts_with_symbol
+/Volumes/taurus/音乐/雪霏岚岚, 早木旋子, 张小她, 倒悬的橘子, 双笙（陈元汐）, 宁采臣丶在唱歌, A路人, 漆柚, YUKIri, warma, LKs, 洛天依Official, 乐正绫, LS/【bilibili音乐出品】一话一世界（《一花依世界》方言合唱版,bilibili好乡音活动曲）/【bilibili音乐】一话一世界 《一花依世界》方言合唱版.mp3	audio_stem_starts_with_symbol
+/Volumes/taurus/音乐/霜月はるか/メメントモリ Lament Collection Vol.1 (1)/Étoile.lrc	lrc_stem_starts_with_symbol
+/Volumes/taurus/音乐/霜月はるか/メメントモリ Lament Collection Vol.1 (1)/Étoile.m4a	audio_stem_starts_with_symbol
+/Volumes/taurus/音乐/魏琮霏/Wei/魏琮霏 - 青石巷.lrc	orphan_lrc_no_same_stem_audio
+/Volumes/taurus/音乐/鸾音社/桃花妆/鸾音社 - 桃花妆.lrc	orphan_lrc_no_same_stem_audio
+/Volumes/taurus/音乐/麦振鸿/仙剑奇侠传三 电视原声带/麦振鸿 - 雪见—仙凡之旅.lrc	orphan_lrc_no_same_stem_audio

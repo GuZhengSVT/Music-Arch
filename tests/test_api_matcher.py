@@ -4,8 +4,11 @@ from musicarch.api_matcher import (
     BaseMusicSearchClient,
     CloudTrackCandidate,
     LocalTrackInfo,
+    MatchDecision,
     MetadataMatcher,
     format_match_result,
+    is_instrumental_lyrics,
+    join_artists,
 )
 
 
@@ -95,3 +98,37 @@ def test_match_not_found_contains_error_metadata_when_client_fails():
     assert decision.error_code == "timeout"
     assert decision.error_message is not None
     assert "timeout" in format_match_result(decision)
+
+
+def test_join_artists_uses_separator():
+    text = join_artists(["A", "B"], separator=" / ")
+    assert text == "A / B"
+
+
+def test_is_instrumental_lyrics_detects_common_markers():
+    assert is_instrumental_lyrics("纯音乐，请欣赏") is True
+    assert is_instrumental_lyrics("[00:01.00]hello") is False
+
+
+def test_fetch_lyrics_prefers_matched_netease_candidate():
+    local = LocalTrackInfo(title="Song", artist="Artist")
+    candidate = CloudTrackCandidate(
+        source="netease",
+        track_id="123",
+        title="Song",
+        artists=["Artist"],
+        duration_seconds=100,
+    )
+    decision = MatchDecision(
+        status="matched",
+        confidence=0.9,
+        reason="ok",
+        best_candidate=candidate,
+    )
+
+    matcher = MetadataMatcher([FakeClient([candidate])])
+    matcher.lyric_client.fetch_lyric_text = lambda track_id: "[00:01.00]line" if track_id == "123" else None
+
+    lyric = matcher.fetch_lyrics_for_match(decision, local)
+    assert lyric is not None
+    assert "line" in lyric

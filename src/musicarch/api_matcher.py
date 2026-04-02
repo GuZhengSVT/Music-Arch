@@ -55,6 +55,26 @@ class MatchDecision:
     error_message: str | None = None
 
 
+def join_artists(artists: list[str], separator: str = " / ") -> str:
+    normalized = [str(item).strip() for item in artists if str(item).strip()]
+    return separator.join(normalized)
+
+
+def is_instrumental_lyrics(lyrics_text: str) -> bool:
+    text = str(lyrics_text or "").strip().lower()
+    if not text:
+        return False
+    markers = [
+        "纯音乐",
+        "instrumental",
+        "inst.",
+        "请欣赏",
+        "没有填词",
+        "暂无歌词",
+    ]
+    return any(marker in text for marker in markers)
+
+
 class BaseMusicSearchClient:
     source_name = "base"
 
@@ -123,6 +143,39 @@ class NetEaseSearchClient(BaseMusicSearchClient):
                 )
             )
         return out
+
+
+class NetEaseLyricClient(BaseMusicSearchClient):
+    source_name = "netease-lyric"
+
+    def __init__(self, timeout: float = 10.0, retries: int = 2, backoff_seconds: float = 0.4):
+        super().__init__(timeout=timeout, retries=retries, backoff_seconds=backoff_seconds)
+
+    def search_tracks(self, query: str, limit: int = 5) -> list[CloudTrackCandidate]:
+        # Keep BaseMusicSearchClient contract; not used for lyric fetch.
+        return []
+
+    def fetch_lyric_text(self, track_id: str) -> str | None:
+        if not str(track_id).strip():
+            return None
+
+        url = "https://music.163.com/api/song/lyric"
+        headers = {"Referer": "https://music.163.com", "User-Agent": "MusicArch/0.1"}
+        params = {"id": str(track_id), "lv": 1, "kv": 1, "tv": -1}
+
+        resp = self._call_with_retry(
+            lambda: httpx.get(url, params=params, headers=headers, timeout=self.timeout)
+        )
+        resp.raise_for_status()
+        data = resp.json()
+
+        lrc_data = data.get("lrc") if isinstance(data, dict) else None
+        if not isinstance(lrc_data, dict):
+            return None
+        lyric_text = lrc_data.get("lyric")
+        if isinstance(lyric_text, str) and lyric_text.strip():
+            return lyric_text
+        return None
 
 
 class QQMusicSearchClient(BaseMusicSearchClient):
@@ -246,10 +299,12 @@ class MetadataMatcher:
         clients: Iterable[BaseMusicSearchClient],
         duration_tolerance_seconds: float = 5.0,
         min_confidence: float = 0.60,
+        lyric_client: NetEaseLyricClient | None = None,
     ):
         self.clients = list(clients)
         self.duration_tolerance_seconds = duration_tolerance_seconds
         self.min_confidence = min_confidence
+        self.lyric_client = lyric_client or NetEaseLyricClient()
 
     def _classify_error(self, exc: Exception) -> tuple[str, str]:
         if isinstance(exc, httpx.TimeoutException):
@@ -346,6 +401,44 @@ class MetadataMatcher:
             artist_similarity=artist_sim,
             duration_diff_seconds=duration_diff,
         )
+
+    def fetch_lyrics_for_match(self, decision: MatchDecision, local: LocalTrackInfo) -> str | None:
+        if not self.lyric_client:
+            return None
+
+        candidate = decision.best_candidate
+        # Prefer the matched NetEase song id when available.
+        if candidate and candidate.source == "netease" and candidate.track_id:
+            lyric = self.lyric_client.fetch_lyric_text(candidate.track_id)
+            if lyric:
+                return lyric
+
+        # Fallback: search NetEase by local metadata and request lyric from top candidate.
+        fallback_client = NetEaseSearchClient(
+            timeout=self.lyric_client.timeout,
+            retries=self.lyric_client.retries,
+            backoff_seconds=self.lyric_client.backoff_seconds,
+        )
+        query = f"{local.artist} {local.title}".strip()
+        if not query:
+            return None
+
+        try:
+            candidates = fallback_client.search_tracks(query=query, limit=3)
+        except Exception:
+            return None
+
+        for item in candidates:
+            if not item.track_id:
+                continue
+            try:
+                lyric = self.lyric_client.fetch_lyric_text(item.track_id)
+            except Exception:
+                continue
+            if lyric:
+                return lyric
+
+        return None
 
 
 def format_match_result(decision: MatchDecision) -> str:

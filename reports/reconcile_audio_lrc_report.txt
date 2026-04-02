@@ -1,0 +1,11 @@
+mode=APPLY
+root=/Volumes/taurus/音乐
+planned=3
+renamed=3
+skipped=0
+PAIR	/Volumes/taurus/音乐/AniFace/三音成曲	score=0.900	audio=Miss U the 715th time.m4a	lrc=AniFace - Miss U the 715th time.lrc	target_stem=AniFace - Miss U the 715th time
+RENAMED	/Volumes/taurus/音乐/AniFace/三音成曲/Miss U the 715th time.m4a	->	/Volumes/taurus/音乐/AniFace/三音成曲/AniFace - Miss U the 715th time.m4a
+PAIR	/Volumes/taurus/音乐/BLACKDD/四月十一	score=0.900	audio=四月十一.m4a	lrc=BLACKDD - 四月十一.lrc	target_stem=BLACKDD - 四月十一
+RENAMED	/Volumes/taurus/音乐/BLACKDD/四月十一/四月十一.m4a	->	/Volumes/taurus/音乐/BLACKDD/四月十一/BLACKDD - 四月十一.m4a
+PAIR	/Volumes/taurus/音乐/SNH48/醉清风	score=0.900	audio=SNH48 - 醉清风.MP3	lrc=醉清风.lrc	target_stem=SNH48 - 醉清风
+RENAMED	/Volumes/taurus/音乐/SNH48/醉清风/醉清风.lrc	->	/Volumes/taurus/音乐/SNH48/醉清风/SNH48 - 醉清风.lrc

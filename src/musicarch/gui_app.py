@@ -79,22 +79,61 @@ class MatchWorker(QObject):
     progress = pyqtSignal(int, str)
     error = pyqtSignal(str)
 
-    def __init__(self, workflow: MusicArchWorkflow, records: list[dict]):
+    def __init__(self, workflow: MusicArchWorkflow, records: list[dict], batch_size: int = 200):
         super().__init__()
         self.workflow = workflow
         self.records = records
+        self.batch_size = max(1, batch_size)
         self._stop_requested = False
 
     def run(self) -> None:
         try:
-            updated = self.workflow.match_records(
-                self.records,
-                progress_callback=self._on_progress,
-                should_stop=self._should_stop,
-            )
+            updated = self._run_batched_match()
             self.finished.emit(updated)
         except Exception as exc:
             self.error.emit(str(exc))
+
+    def _run_batched_match(self) -> list[dict]:
+        total = len(self.records)
+        if total == 0:
+            return []
+
+        updated: list[dict] = []
+        processed = 0
+
+        for start in range(0, total, self.batch_size):
+            if self._should_stop():
+                self._append_cancelled_tail(updated, start)
+                break
+
+            chunk = self.records[start : start + self.batch_size]
+
+            def chunk_progress(current: int, _chunk_total: int, message: str) -> None:
+                overall_current = min(total, processed + current)
+                percent = int((overall_current / total) * 100) if total else 0
+                self.progress.emit(percent, message)
+
+            chunk_updated = self.workflow.match_records(
+                chunk,
+                progress_callback=chunk_progress,
+                should_stop=self._should_stop,
+            )
+            updated.extend(chunk_updated)
+            processed += len(chunk)
+
+            if self._should_stop():
+                self._append_cancelled_tail(updated, processed)
+                break
+
+        return updated
+
+    def _append_cancelled_tail(self, sink: list[dict], start: int) -> None:
+        for item in self.records[start:]:
+            cancelled = deepcopy(item)
+            status = str(cancelled.get("status", ""))
+            if status not in {"success", "anomaly"}:
+                cancelled["status"] = "cancelled"
+            sink.append(cancelled)
 
     def request_stop(self) -> None:
         self._stop_requested = True
@@ -112,22 +151,87 @@ class ApplyWorker(QObject):
     progress = pyqtSignal(int, str)
     error = pyqtSignal(str)
 
-    def __init__(self, workflow: MusicArchWorkflow, records: list[dict]):
+    def __init__(
+        self,
+        workflow: MusicArchWorkflow,
+        records: list[dict],
+        mode: str,
+        batch_size: int = 200,
+    ):
         super().__init__()
         self.workflow = workflow
         self.records = records
+        self.mode = mode
+        self.batch_size = max(1, batch_size)
         self._stop_requested = False
 
     def run(self) -> None:
         try:
-            updated = self.workflow.apply_changes(
-                self.records,
-                progress_callback=self._on_progress,
-                should_stop=self._should_stop,
-            )
+            updated = self._run_batched_apply()
             self.finished.emit(updated)
         except Exception as exc:
             self.error.emit(str(exc))
+
+    def _run_batched_apply(self) -> list[dict]:
+        total = len(self.records)
+        if total == 0:
+            return []
+
+        updated: list[dict] = []
+        processed = 0
+
+        for start in range(0, total, self.batch_size):
+            if self._should_stop():
+                self._append_cancelled_tail(updated, start)
+                break
+
+            chunk = self.records[start : start + self.batch_size]
+
+            def chunk_progress(current: int, _chunk_total: int, message: str) -> None:
+                overall_current = min(total, processed + current)
+                percent = int((overall_current / total) * 100) if total else 0
+                self.progress.emit(percent, message)
+
+            if self.mode == "metadata":
+                chunk_updated = self.workflow.apply_metadata(
+                    chunk,
+                    progress_callback=chunk_progress,
+                    should_stop=self._should_stop,
+                )
+            elif self.mode == "rename":
+                chunk_updated = self.workflow.apply_rename(
+                    chunk,
+                    progress_callback=chunk_progress,
+                    should_stop=self._should_stop,
+                )
+            elif self.mode == "lyrics":
+                chunk_updated = self.workflow.apply_lyrics(
+                    chunk,
+                    progress_callback=chunk_progress,
+                    should_stop=self._should_stop,
+                )
+            else:
+                chunk_updated = self.workflow.apply_changes(
+                    chunk,
+                    progress_callback=chunk_progress,
+                    should_stop=self._should_stop,
+                )
+            updated.extend(chunk_updated)
+            processed += len(chunk)
+
+            if self._should_stop():
+                self._append_cancelled_tail(updated, processed)
+                break
+
+        return updated
+
+    def _append_cancelled_tail(self, sink: list[dict], start: int) -> None:
+        for item in self.records[start:]:
+            cancelled = deepcopy(item)
+            status = str(cancelled.get("status", ""))
+            if status not in {"success", "anomaly"}:
+                cancelled["status"] = "cancelled"
+            sink.append(cancelled)
 
     def request_stop(self) -> None:
         self._stop_requested = True
@@ -141,7 +245,7 @@ class ApplyWorker(QObject):
 
 
 class MusicArchMainWindow(QMainWindow):
-    COLUMNS = ["旧文件名", "新文件名", "状态", "云端匹配结果"]
+    COLUMNS = ["选择", "旧文件名", "新文件名", "状态", "云端匹配结果"]
 
     def __init__(self):
         super().__init__()
@@ -176,6 +280,7 @@ class MusicArchMainWindow(QMainWindow):
             "状态": "status",
             "匹配结果": "cloud_match_result",
         }
+        self._updating_table = False
 
         self._build_ui()
 
@@ -198,8 +303,12 @@ class MusicArchMainWindow(QMainWindow):
         action_layout = QHBoxLayout()
         self.scan_button = QPushButton("开始扫描")
         self.match_button = QPushButton("云端匹配")
-        self.apply_button = QPushButton("应用修改")
+        self.apply_metadata_button = QPushButton("写入元数据")
+        self.apply_rename_button = QPushButton("应用重命名")
+        self.apply_lyrics_button = QPushButton("写入歌词")
         self.retry_anomaly_button = QPushButton("重试异常项")
+        self.select_all_button = QPushButton("全选")
+        self.unselect_all_button = QPushButton("取消选择")
         self.stop_button = QPushButton("停止当前任务")
         self.save_checkpoint_button = QPushButton("保存检查点")
         self.load_checkpoint_button = QPushButton("加载检查点")
@@ -207,8 +316,12 @@ class MusicArchMainWindow(QMainWindow):
 
         self.scan_button.clicked.connect(self._on_start_scan)
         self.match_button.clicked.connect(self._on_start_match)
-        self.apply_button.clicked.connect(self._on_start_apply)
+        self.apply_metadata_button.clicked.connect(self._on_start_apply_metadata)
+        self.apply_rename_button.clicked.connect(self._on_start_apply_rename)
+        self.apply_lyrics_button.clicked.connect(self._on_start_apply_lyrics)
         self.retry_anomaly_button.clicked.connect(self._on_retry_anomalies)
+        self.select_all_button.clicked.connect(self._on_select_all)
+        self.unselect_all_button.clicked.connect(self._on_unselect_all)
         self.stop_button.clicked.connect(self._on_stop_task)
         self.save_checkpoint_button.clicked.connect(self._on_save_checkpoint)
         self.load_checkpoint_button.clicked.connect(self._on_load_checkpoint)
@@ -216,8 +329,12 @@ class MusicArchMainWindow(QMainWindow):
 
         action_layout.addWidget(self.scan_button)
         action_layout.addWidget(self.match_button)
-        action_layout.addWidget(self.apply_button)
+        action_layout.addWidget(self.apply_metadata_button)
+        action_layout.addWidget(self.apply_rename_button)
+        action_layout.addWidget(self.apply_lyrics_button)
         action_layout.addWidget(self.retry_anomaly_button)
+        action_layout.addWidget(self.select_all_button)
+        action_layout.addWidget(self.unselect_all_button)
         action_layout.addWidget(self.stop_button)
         action_layout.addWidget(self.save_checkpoint_button)
         action_layout.addWidget(self.load_checkpoint_button)
@@ -265,8 +382,20 @@ class MusicArchMainWindow(QMainWindow):
         self.table = QTableWidget(0, len(self.COLUMNS))
         self.table.setHorizontalHeaderLabels(self.COLUMNS)
         self.table.horizontalHeader().setStretchLastSection(True)
+        self.table.setColumnWidth(0, 56)
         self.table.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.table.customContextMenuRequested.connect(self._on_table_context_menu)
+        self.table.itemChanged.connect(self._on_table_item_changed)
+        self.table.setStyleSheet(
+            "QTableWidget::item:selected {"
+            "background-color: #2f4858;"
+            "color: #f6fbff;"
+            "font-weight: 600;"
+            "}"
+            "QTableWidget::item:selected:active {"
+            "background-color: #355f74;"
+            "}"
+        )
 
         self.progress = QProgressBar()
         self.log_box = QTextEdit()
@@ -310,20 +439,62 @@ class MusicArchMainWindow(QMainWindow):
             QMessageBox.warning(self, "提示", "请先扫描目录")
             return
 
-        worker = MatchWorker(self.workflow, self.records)
+        selected_indices = self._selected_record_indices()
+        if not selected_indices:
+            QMessageBox.information(self, "提示", "请先勾选要匹配的歌曲")
+            return
+
+        payload: list[dict] = []
+        for idx in selected_indices:
+            item = deepcopy(self.records[idx])
+            item["_origin_index"] = idx
+            payload.append(item)
+
+        worker = MatchWorker(self.workflow, payload)
         self._start_worker(
             worker=worker,
-            start_log="开始云端匹配",
+            start_log=f"开始云端匹配（选中 {len(payload)} 条，每组 200 条）",
             finish_log="云端匹配完成",
             on_finished=self._handle_match_finished,
         )
 
-    def _on_start_apply(self) -> None:
+    def _on_start_apply_metadata(self) -> None:
+        self._start_apply_for_mode(
+            mode="metadata",
+            start_label="开始写入元数据",
+            finish_label="写入元数据完成",
+        )
+
+    def _on_start_apply_rename(self) -> None:
+        self._start_apply_for_mode(
+            mode="rename",
+            start_label="开始应用重命名",
+            finish_label="应用重命名完成",
+        )
+
+    def _on_start_apply_lyrics(self) -> None:
+        self._start_apply_for_mode(
+            mode="lyrics",
+            start_label="开始写入歌词",
+            finish_label="写入歌词完成",
+        )
+
+    def _start_apply_for_mode(self, mode: str, start_label: str, finish_label: str) -> None:
         if not self.records:
             QMessageBox.warning(self, "提示", "请先扫描目录")
             return
 
-        payload = deepcopy(self.records)
+        selected_indices = self._selected_record_indices()
+        if not selected_indices:
+            QMessageBox.information(self, "提示", "请先勾选要应用的歌曲")
+            return
+
+        payload: list[dict] = []
+        for idx in selected_indices:
+            item = deepcopy(self.records[idx])
+            item["_origin_index"] = idx
+            payload.append(item)
+
         skipped = 0
         confirmed = 0
         for record in payload:
@@ -336,15 +507,18 @@ class MusicArchMainWindow(QMainWindow):
                     record["skip_apply"] = True
                     skipped += 1
 
-        if skipped == len(payload):
+        if payload and skipped == len(payload):
             QMessageBox.information(self, "提示", "全部为未确认异常项，请先右键标记手动确认")
             return
 
-        worker = ApplyWorker(self.workflow, payload)
+        worker = ApplyWorker(self.workflow, payload, mode=mode)
         self._start_worker(
             worker=worker,
-            start_log=f"开始应用修改 (已确认异常: {confirmed}, 跳过未确认异常: {skipped})",
-            finish_log="应用修改完成",
+            start_log=(
+                f"{start_label}（每组 200 条，已确认异常: {confirmed}, "
+                f"跳过未确认异常: {skipped}）"
+            ),
+            finish_log=finish_label,
             on_finished=self._handle_apply_finished,
         )
 
@@ -370,10 +544,10 @@ class MusicArchMainWindow(QMainWindow):
             QMessageBox.information(self, "提示", "当前没有可恢复的异常项可重试")
             return
 
-        worker = ApplyWorker(self.workflow, payload)
+        worker = ApplyWorker(self.workflow, payload, mode="metadata")
         self._start_worker(
             worker=worker,
-            start_log=f"开始重试异常项: {len(payload)} 条",
+            start_log=f"开始重试异常项(元数据写入): {len(payload)} 条（每组 200 条）",
             finish_log="异常项重试完成",
             on_finished=self._handle_retry_finished,
         )
@@ -432,6 +606,7 @@ class MusicArchMainWindow(QMainWindow):
             for record in records:
                 record.setdefault("manual_confirmed", False)
                 record.setdefault("skip_apply", False)
+                record.setdefault("selected", True)
 
             self.records = records
             self.current_dir = str(metadata.get("root_dir") or self.current_dir or "")
@@ -444,7 +619,7 @@ class MusicArchMainWindow(QMainWindow):
             QMessageBox.critical(self, "加载失败", str(exc))
 
     def _start_worker(self, worker: QObject, start_log: str, finish_log: str, on_finished) -> None:
-        if self.worker_thread and self.worker_thread.isRunning():
+        if self._has_running_worker_thread():
             QMessageBox.information(self, "提示", "已有任务正在执行")
             return
 
@@ -469,6 +644,7 @@ class MusicArchMainWindow(QMainWindow):
 
         worker.finished.connect(thread.quit)
         worker.error.connect(thread.quit)
+        thread.finished.connect(self._on_thread_finished)
         thread.finished.connect(worker.deleteLater)
         thread.finished.connect(thread.deleteLater)
 
@@ -479,6 +655,7 @@ class MusicArchMainWindow(QMainWindow):
         for record in records:
             record.setdefault("manual_confirmed", False)
             record.setdefault("skip_apply", False)
+            record.setdefault("selected", True)
         self.records = records
         self.page_index = 0
         self._refresh_table()
@@ -489,6 +666,7 @@ class MusicArchMainWindow(QMainWindow):
         for record in batch:
             record["manual_confirmed"] = False
             record["skip_apply"] = False
+            record["selected"] = True
             self.records.append(record)
             self.update_counter += 1
 
@@ -501,18 +679,47 @@ class MusicArchMainWindow(QMainWindow):
         self._log(f"扫描中: 已发现 {len(self.records)} 条")
 
     def _handle_match_finished(self, records: list[dict]) -> None:
-        for record in records:
-            record.setdefault("manual_confirmed", False)
-            record["skip_apply"] = False
-        self.records = records
+        has_partial_payload = any("_origin_index" in item for item in records)
+
+        if has_partial_payload:
+            for item in records:
+                origin_idx = item.get("_origin_index")
+                if isinstance(origin_idx, int) and 0 <= origin_idx < len(self.records):
+                    selected = bool(self.records[origin_idx].get("selected", True))
+                    item.pop("_origin_index", None)
+                    item.setdefault("manual_confirmed", False)
+                    item["skip_apply"] = False
+                    item["selected"] = selected
+                    self.records[origin_idx].update(item)
+        else:
+            for record in records:
+                record.setdefault("manual_confirmed", False)
+                record["skip_apply"] = False
+                record.setdefault("selected", True)
+            self.records = records
+
         self.page_index = 0
         self._refresh_table()
         self._save_checkpoint_silent()
 
     def _handle_apply_finished(self, records: list[dict]) -> None:
-        for record in records:
-            record["skip_apply"] = False
-        self.records = records
+        has_partial_payload = any("_origin_index" in item for item in records)
+
+        if has_partial_payload:
+            for item in records:
+                origin_idx = item.get("_origin_index")
+                if isinstance(origin_idx, int) and 0 <= origin_idx < len(self.records):
+                    selected = bool(self.records[origin_idx].get("selected", True))
+                    item.pop("_origin_index", None)
+                    item["skip_apply"] = False
+                    item["selected"] = selected
+                    self.records[origin_idx].update(item)
+        else:
+            for record in records:
+                record["skip_apply"] = False
+                record.setdefault("selected", True)
+            self.records = records
+
         self.page_index = 0
         self._refresh_table()
         self._save_checkpoint_silent()
@@ -526,6 +733,7 @@ class MusicArchMainWindow(QMainWindow):
         QMessageBox.critical(self, "任务失败", message)
         self._set_actions_enabled(True)
         self.stop_button.setEnabled(False)
+        self.current_worker = None
 
     def _on_worker_done(self, finish_log: str) -> None:
         self.progress.setValue(100)
@@ -538,12 +746,30 @@ class MusicArchMainWindow(QMainWindow):
         self.current_worker = None
         self._save_checkpoint_silent()
 
+    def _has_running_worker_thread(self) -> bool:
+        """Safely check running state when underlying QThread may already be deleted."""
+        if self.worker_thread is None:
+            return False
+
+        try:
+            return self.worker_thread.isRunning()
+        except RuntimeError:
+            self.worker_thread = None
+            return False
+
+    def _on_thread_finished(self) -> None:
+        self.worker_thread = None
+
     def _set_actions_enabled(self, enabled: bool) -> None:
         self.select_button.setEnabled(enabled)
         self.scan_button.setEnabled(enabled)
         self.match_button.setEnabled(enabled)
-        self.apply_button.setEnabled(enabled)
+        self.apply_metadata_button.setEnabled(enabled)
+        self.apply_rename_button.setEnabled(enabled)
+        self.apply_lyrics_button.setEnabled(enabled)
         self.retry_anomaly_button.setEnabled(enabled)
+        self.select_all_button.setEnabled(enabled)
+        self.unselect_all_button.setEnabled(enabled)
         self.stop_button.setEnabled(False)
         self.save_checkpoint_button.setEnabled(enabled)
         self.load_checkpoint_button.setEnabled(enabled)
@@ -575,9 +801,18 @@ class MusicArchMainWindow(QMainWindow):
         self.page_index = page.page_index
         self.filtered_indices = page.indices
         self.table.setRowCount(len(self.filtered_indices))
+        self._updating_table = True
 
         for row, record_idx in enumerate(self.filtered_indices):
             record = self.records[record_idx]
+
+            check_item = QTableWidgetItem("")
+            check_item.setFlags(Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsUserCheckable)
+            check_item.setCheckState(
+                Qt.CheckState.Checked if bool(record.get("selected", True)) else Qt.CheckState.Unchecked
+            )
+            self.table.setItem(row, 0, check_item)
+
             values = [
                 str(record.get("old_file_name", "")),
                 str(record.get("new_file_name", "")),
@@ -585,7 +820,7 @@ class MusicArchMainWindow(QMainWindow):
                 str(record.get("cloud_match_result", "")),
             ]
 
-            for col, value in enumerate(values):
+            for col, value in enumerate(values, start=1):
                 item = QTableWidgetItem(value)
                 self.table.setItem(row, col, item)
 
@@ -594,6 +829,8 @@ class MusicArchMainWindow(QMainWindow):
                 self._paint_row(row, QColor(255, 227, 227))
             elif status == "success":
                 self._paint_row(row, QColor(232, 255, 232))
+
+        self._updating_table = False
 
         self.page_label.setText(f"第 {page.page_index + 1} / {page.total_pages} 页")
         self.prev_page_button.setEnabled(page.page_index > 0)
@@ -608,6 +845,38 @@ class MusicArchMainWindow(QMainWindow):
     def _on_filter_changed(self, *_args) -> None:
         self.page_index = 0
         self._refresh_table()
+
+    def _on_table_item_changed(self, item: QTableWidgetItem) -> None:
+        if self._updating_table:
+            return
+        if item.column() != 0:
+            return
+
+        row = item.row()
+        if row < 0 or row >= len(self.filtered_indices):
+            return
+
+        record_idx = self.filtered_indices[row]
+        self.records[record_idx]["selected"] = item.checkState() == Qt.CheckState.Checked
+
+    def _selected_record_indices(self) -> list[int]:
+        return [idx for idx, item in enumerate(self.records) if bool(item.get("selected", True))]
+
+    def _on_select_all(self) -> None:
+        if not self.records:
+            return
+        for record in self.records:
+            record["selected"] = True
+        self._refresh_table()
+        self._log(f"已全选 {len(self.records)} 条")
+
+    def _on_unselect_all(self) -> None:
+        if not self.records:
+            return
+        for record in self.records:
+            record["selected"] = False
+        self._refresh_table()
+        self._log("已取消全部选择")
 
     def _on_prev_page(self) -> None:
         if self.page_index > 0:
@@ -678,7 +947,7 @@ class MusicArchMainWindow(QMainWindow):
         self._log(f"异常项已导出: {target}")
 
     def _on_stop_task(self) -> None:
-        if not (self.worker_thread and self.worker_thread.isRunning()):
+        if not self._has_running_worker_thread():
             QMessageBox.information(self, "提示", "当前没有进行中的任务")
             return
 
@@ -751,6 +1020,7 @@ class MusicArchMainWindow(QMainWindow):
             for record in records:
                 record.setdefault("manual_confirmed", False)
                 record.setdefault("skip_apply", False)
+                record.setdefault("selected", True)
 
             self.records = records
             self.current_dir = str(metadata.get("root_dir") or self.current_dir or "")

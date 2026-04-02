@@ -284,3 +284,86 @@ def test_apply_changes_preflight_missing_file_sets_error_code(tmp_path: Path):
     out = workflow.apply_changes(records)
     assert out[0]["status"] == "anomaly"
     assert out[0]["error_code"] == "missing_file"
+
+
+def test_apply_metadata_writes_tags(tmp_path: Path):
+    audio_path = tmp_path / "demo.mp3"
+    audio_path.write_bytes(b"audio")
+
+    workflow = MusicArchWorkflow()
+    called = {"value": False}
+
+    def _fake_write_metadata(_path, *, title, artists, album):
+        called["value"] = True
+        assert title == "Song"
+        assert artists == ["Artist A", "Artist B"]
+        assert album == "Album"
+
+    workflow.engine.write_metadata = _fake_write_metadata
+
+    records = [
+        {
+            "audio_path": str(audio_path),
+            "relative_path": "Artist/Album/demo.mp3",
+            "old_file_name": "demo.mp3",
+            "new_file_name": "demo.mp3",
+            "rename_needed": False,
+            "status": "pending",
+            "title": "Song",
+            "album": "Album",
+            "matched_artists": ["Artist A", "Artist B"],
+        }
+    ]
+
+    out = workflow.apply_metadata(records)
+    assert out[0]["status"] == "success"
+    assert out[0]["metadata_written"] is True
+    assert called["value"] is True
+
+
+def test_apply_lyrics_embeds_online_when_no_local_lrc(tmp_path: Path):
+    audio_path = tmp_path / "demo.mp3"
+    audio_path.write_bytes(b"audio")
+
+    candidate = CloudTrackCandidate(
+        source="netease",
+        track_id="123",
+        title="Song",
+        artists=["Artist"],
+        duration_seconds=100,
+    )
+    decision = MatchDecision(
+        status="matched",
+        confidence=0.9,
+        reason="ok",
+        best_candidate=candidate,
+    )
+
+    workflow = MusicArchWorkflow(matcher=FakeMatcher(decision))
+    workflow.matcher.fetch_lyrics_for_match = lambda _decision, _local: "[00:01.00]hello"
+
+    embedded = {"value": False}
+
+    def _fake_embed_lyrics(_path, _lyrics):
+        embedded["value"] = True
+
+    workflow.engine.embed_lyrics = _fake_embed_lyrics
+
+    records = [
+        {
+            "audio_path": str(audio_path),
+            "relative_path": "Artist/Album/demo.mp3",
+            "old_file_name": "demo.mp3",
+            "new_file_name": "demo.mp3",
+            "rename_needed": False,
+            "status": "pending",
+            "title": "Song",
+            "artist": "Artist",
+        }
+    ]
+
+    out = workflow.apply_lyrics(records)
+    assert out[0]["status"] == "success"
+    assert out[0]["embedded_lyrics"] is True
+    assert out[0]["lyrics_source"] == "online"
+    assert embedded["value"] is True

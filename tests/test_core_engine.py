@@ -55,3 +55,30 @@ def test_embed_lyrics_rejects_unsupported_format():
         assert "Unsupported audio format" in str(exc)
     else:
         raise AssertionError("Expected ValueError for unsupported format")
+
+
+def test_build_metadata_filename_stem_includes_artists():
+    engine = MusicArchEngine()
+    stem = engine.build_metadata_filename_stem("Song", ["Artist A", "Artist B"])
+    assert stem == "Song - Artist A - Artist B"
+
+
+def test_write_metadata_dispatch_mp3():
+    engine = MusicArchEngine()
+    with patch.object(engine, "_write_mp3_metadata") as mp3_mock:
+        engine.write_metadata(Path("song.mp3"), title="a", artists=["b"], album="c")
+        mp3_mock.assert_called_once()
+
+
+def test_write_metadata_dispatch_flac():
+    engine = MusicArchEngine()
+    with patch.object(engine, "_write_flac_metadata") as flac_mock:
+        engine.write_metadata(Path("song.flac"), title="a", artists=["b"], album="c")
+        flac_mock.assert_called_once()
+
+
+def test_write_metadata_dispatch_m4a():
+    engine = MusicArchEngine()
+    with patch.object(engine, "_write_m4a_metadata") as m4a_mock:
+        engine.write_metadata(Path("song.m4a"), title="a", artists=["b"], album="c")
+        m4a_mock.assert_called_once()
